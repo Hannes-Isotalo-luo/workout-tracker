@@ -8,5 +8,12 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
+
+    // Publicly shareable routines: anyone can read a shared routine by its id,
+    // any signed-in user can publish one. No updates/deletes (shares are immutable).
+    match /shared_routines/{shareId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+    }
   }
 }

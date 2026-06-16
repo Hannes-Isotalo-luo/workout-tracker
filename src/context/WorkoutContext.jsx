@@ -48,13 +48,6 @@ export function WorkoutProvider({ children }) {
     }
   }, [customGoals, user, isGoalsHydrated]);
 
-  const secondsRef = useRef(state.restTimer.seconds);
-
-  // Keep the ref updated with the latest state value
-  useEffect(() => {
-    secondsRef.current = state.restTimer.seconds;
-  }, [state.restTimer.seconds]);
-
   const [lastCompletedSession, setLastCompletedSession] = useState(null);
 
   // Listen to Firebase Auth state and handle redirects (SSO redirect resolution)
@@ -484,57 +477,43 @@ export function WorkoutProvider({ children }) {
     }
   };
 
-  const targetEndTimeRef = useRef(null);
-
-  // 2. Self-contained Rest Timer countdown hook logic with background drift compensation
+  // 2. Self-contained Rest Timer countdown logic with background drift compensation.
+  // state.restTimer.endTime is the single source of truth; we recompute the absolute
+  // remaining seconds on every tick so the timer always counts DOWN to zero, even after
+  // the tab was backgrounded.
   useEffect(() => {
-    let interval = null;
+    if (!state.restTimer.isRunning || !state.restTimer.endTime) return;
 
-    if (state.restTimer.isRunning && secondsRef.current > 0) {
-      console.log(`[WorkoutProvider] Timer started/resumed. Remaining: ${secondsRef.current}s`);
-      
-      // Only set the target end time if it hasn't been set for this timer run yet
-      if (!targetEndTimeRef.current) {
-        targetEndTimeRef.current = Date.now() + (secondsRef.current * 1000);
+    console.log(`[WorkoutProvider] Timer started/resumed. Remaining: ${Math.max(0, Math.round((state.restTimer.endTime - Date.now()) / 1000))}s`);
+
+    const checkTime = () => {
+      const remaining = Math.max(0, Math.round((state.restTimer.endTime - Date.now()) / 1000));
+
+      if (remaining <= 0) {
+        console.log("[WorkoutProvider] Timer reached 0. Triggering audio haptic alert.");
+        playRestCompletedAlert();
+        dispatch({ type: "STOP_REST_TIMER" });
+      } else {
+        // Recompute absolute remaining from endTime (counts down)
+        dispatch({ type: "TICK_REST_TIMER" });
       }
+    };
 
-      const checkTime = () => {
-        if (!state.restTimer.isRunning || !targetEndTimeRef.current) return;
-        
-        const now = Date.now();
-        const remaining = Math.max(0, Math.round((targetEndTimeRef.current - now) / 1000));
-        
-        if (remaining !== secondsRef.current) {
-           if (remaining <= 0) {
-             console.log("[WorkoutProvider] Timer reached 0. Triggering audio haptic alert.");
-             playRestCompletedAlert();
-             dispatch({ type: "STOP_REST_TIMER" });
-             targetEndTimeRef.current = null;
-           } else {
-             // Modify timer state to jump to the actual remaining time
-             dispatch({ type: "MODIFY_REST_TIMER", payload: { seconds: remaining } });
-           }
-        }
-      };
+    // Catch up immediately when returning to the foreground
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkTime();
+      }
+    };
 
-      // Set up visibilitychange listener to catch up immediately when returning to foreground
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          checkTime();
-        }
-      };
-      
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      interval = setInterval(checkTime, 1000);
-      
-      return () => {
-        clearInterval(interval);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
-    } else {
-       targetEndTimeRef.current = null;
-    }
-  }, [state.restTimer.isRunning, settings]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const interval = setInterval(checkTime, 1000);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [state.restTimer.isRunning, state.restTimer.endTime, settings]);
 
   // ─── Dispatcher Helper Wrappers ──────────────────────────────────────
 

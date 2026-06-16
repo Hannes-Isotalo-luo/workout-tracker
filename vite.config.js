@@ -2,8 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
+  // Strip console.* and debugger from production builds only (kept during dev).
+  esbuild: command === 'build' ? { drop: ['console', 'debugger'] } : {},
   build: {
     rollupOptions: {
       output: {
@@ -21,4 +23,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))
