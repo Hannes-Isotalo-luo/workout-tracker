@@ -1,0 +1,10 @@
+"Term,Definition",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Program,The specific split or routine being followed (e.g. Full Body or Upper/Lower).",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Phase,The training block or specific weeks of the program (e.g. Weeks 1-4).",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Day,The specific workout session within the training phase.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Exercise,The specific movement to be performed.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Sets,A group of consecutive repetitions performed without rest.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Reps,""Short for repetitions, the number of times you perform the movement in a single set.""",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"RPE,""Rate of Perceived Exertion. A scale from 1-10 used to measure the intensity of a set. For","example,",RPE,8,means,you,could,have,done,2,more,reps,(2,Reps,In,Reserve).,RPE,9,means,1,rep,in,"reserve,",and,RPE,10,means,zero,reps,in,reserve,(muscle,"failure)."""
+"Rest,The recommended amount of time to rest between sets before performing the next set.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+"Notes,Specific form cues or instructions to keep in mind while performing the exercise.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
