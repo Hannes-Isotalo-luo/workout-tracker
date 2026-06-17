@@ -11,13 +11,19 @@ import {
   Check, 
   Award, 
   X, 
-  Sparkles, 
+  Sparkles,
   HelpCircle,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Repeat,
+  Layers,
+  History as HistoryIcon
 } from 'lucide-react';
 import SetInput from '../ui/SetInput';
 import { useWorkout } from '../../context/WorkoutContext';
+import PlateCalculatorModal from '../ui/PlateCalculatorModal';
+import ExerciseSwapModal from '../ui/ExerciseSwapModal';
+import { getExercises } from '../../utils/csvParser';
 
 /**
  * Helper to format notes to sentence case
@@ -54,8 +60,31 @@ export function WorkoutList({
   onModifyRestTimer,
   onDismissRestTimer
 }) {
-  const { prs, isPR } = useWorkout();
-  
+  const { prs, isPR, swapExercise, programData, workoutHistory } = useWorkout();
+
+  // Modal state for per-exercise tools
+  const [plateModal, setPlateModal] = useState(null); // { name, weight }
+  const [swapModal, setSwapModal] = useState(null);    // { exerciseId, name }
+
+  // Pool of all known exercise names (program library + anything in history),
+  // used to populate the swap picker.
+  const exercisePool = React.useMemo(() => {
+    const names = new Set();
+    if (programData) {
+      Object.keys(programData).forEach((prog) =>
+        Object.keys(programData[prog]).forEach((phase) =>
+          Object.keys(programData[prog][phase]).forEach((day) =>
+            getExercises(programData, prog, phase, day).forEach((ex) => names.add(ex.exercise))
+          )
+        )
+      );
+    }
+    (workoutHistory || []).forEach((s) =>
+      s.logs?.forEach((l) => l.exerciseName && names.add(l.exerciseName))
+    );
+    return Array.from(names);
+  }, [programData, workoutHistory]);
+
   const [expandedNotes, setExpandedNotes] = useState(() => {
     const initial = {};
     if (session && session.logs) {
@@ -159,6 +188,23 @@ export function WorkoutList({
           const isNotesExpanded = !!expandedNotes[exercise.exerciseId];
           const completedCount = exercise.sets.filter(s => s.isComplete).length;
 
+          // ── "Last time" reference + auto-progression hint (Feature 1) ──
+          const prevSummary = exercise.sets
+            .map(s => (s.previousWeight !== '' && s.previousWeight != null)
+              ? `${s.previousWeight}×${s.previousReps || '?'}`
+              : null)
+            .filter(Boolean);
+          const hasPrev = prevSummary.length > 0;
+          const firstSet = exercise.sets[0];
+          const autoProgressed = !!firstSet
+            && firstSet.previousWeight !== '' && firstSet.previousWeight != null
+            && !isNaN(parseFloat(firstSet.weight))
+            && !isNaN(parseFloat(firstSet.previousWeight))
+            && parseFloat(firstSet.weight) > parseFloat(firstSet.previousWeight);
+
+          // Suggest a starting weight for the plate calculator
+          const plateSeedWeight = (firstSet && firstSet.weight) || (firstSet && firstSet.previousWeight) || '';
+
           return (
             <div 
               key={exercise.exerciseId} 
@@ -195,17 +241,49 @@ export function WorkoutList({
                   </div>
                 </div>
 
-                {/* Show/Hide Notes Button */}
-                {exercise.notes && (
-                  <button 
-                    onClick={() => toggleNotes(exercise.exerciseId)}
-                    className="w-11 h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-100 rounded-xl transition-colors border border-slate-700 flex-shrink-0"
-                    aria-label="Toggle exercise info"
+                {/* Per-exercise action buttons */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => setSwapModal({ exerciseId: exercise.exerciseId, name: exercise.exerciseName })}
+                    className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-violet-900/40 text-slate-400 hover:text-violet-300 rounded-xl transition-colors border border-slate-700 hover:border-violet-500/40"
+                    aria-label="Swap exercise"
+                    title="Swap exercise"
                   >
-                    {isNotesExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    <Repeat className="w-4 h-4" />
                   </button>
-                )}
+                  <button
+                    onClick={() => setPlateModal({ name: exercise.exerciseName, weight: plateSeedWeight })}
+                    className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-cyan-900/40 text-slate-400 hover:text-cyan-300 rounded-xl transition-colors border border-slate-700 hover:border-cyan-500/40"
+                    aria-label="Plate calculator"
+                    title="Plate calculator"
+                  >
+                    <Layers className="w-4 h-4" />
+                  </button>
+                  {exercise.notes && (
+                    <button
+                      onClick={() => toggleNotes(exercise.exerciseId)}
+                      className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-100 rounded-xl transition-colors border border-slate-700"
+                      aria-label="Toggle exercise info"
+                    >
+                      {isNotesExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* ── "Last time" reference line (Feature 1) ── */}
+              {hasPrev && (
+                <div className="mt-2.5 flex items-center gap-2 text-[11px] font-bold text-slate-500 flex-wrap">
+                  <HistoryIcon className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
+                  <span className="text-slate-600 uppercase tracking-wider">Last:</span>
+                  <span className="text-slate-400">{prevSummary.join(' · ')}</span>
+                  {autoProgressed && (
+                    <span className="flex items-center gap-0.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
+                      <TrendingUp className="w-3 h-3" /> auto +2.5kg
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Form Notes Accordion */}
               {exercise.notes && isNotesExpanded && (
@@ -341,6 +419,28 @@ export function WorkoutList({
             )}
           </div>
         </div>
+      )}
+
+      {/* ─── Plate Calculator Modal ─── */}
+      {plateModal && (
+        <PlateCalculatorModal
+          exerciseName={plateModal.name}
+          initialWeight={plateModal.weight}
+          onClose={() => setPlateModal(null)}
+        />
+      )}
+
+      {/* ─── Exercise Swap Modal ─── */}
+      {swapModal && (
+        <ExerciseSwapModal
+          exerciseName={swapModal.name}
+          exercisePool={exercisePool}
+          onSwap={(newName) => {
+            swapExercise(swapModal.exerciseId, newName);
+            setSwapModal(null);
+          }}
+          onClose={() => setSwapModal(null)}
+        />
       )}
 
     </div>

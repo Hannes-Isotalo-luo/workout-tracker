@@ -582,6 +582,11 @@ export function WorkoutProvider({ children }) {
     dispatch({ type: "REMOVE_SET", payload: { exerciseId } });
   };
 
+  const swapExercise = (exerciseId, newExerciseName) => {
+    console.log(`[WorkoutProvider Hook] swapExercise(exerciseId: "${exerciseId}", newExerciseName: "${newExerciseName}")`);
+    dispatch({ type: "SWAP_EXERCISE", payload: { exerciseId, newExerciseName } });
+  };
+
   const cancelSession = () => {
     console.log("[WorkoutProvider Hook] cancelSession()");
     dispatch({ type: "CANCEL_SESSION" });
@@ -805,6 +810,7 @@ export function WorkoutProvider({ children }) {
     completeSet,
     addSet,
     removeSet,
+    swapExercise,
     cancelSession,
     saveSession,
     undoLastSession,

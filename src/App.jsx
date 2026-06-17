@@ -13,9 +13,11 @@ import {
   Cloud,
   CloudOff,
   Loader2,
-  Plus
+  Plus,
+  Download
 } from 'lucide-react'
 import { WorkoutProvider, useWorkout } from './context/WorkoutContext'
+import { exportHistoryToCsv } from './utils/exportCsv'
 import { WorkoutList } from './components/views/WorkoutList'
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard'
 import HistoryCalendar from './components/views/HistoryCalendar'
@@ -1084,6 +1086,33 @@ function MainAppContent() {
                   }`} />
                 </button>
               </div>
+            </div>
+
+            {/* ── Data Export ── */}
+            <div className="mb-5 pt-1">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-2 pl-1">
+                Your Data
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!workoutHistory || workoutHistory.length === 0) {
+                    setToastMessage('No workout history to export yet.')
+                    setTimeout(() => setToastMessage(null), 3000)
+                    return
+                  }
+                  const count = exportHistoryToCsv(workoutHistory)
+                  setToastMessage(`Exported ${count} session${count === 1 ? '' : 's'} to CSV.`)
+                  setTimeout(() => setToastMessage(null), 3000)
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-slate-950/40 border border-slate-850 hover:border-emerald-500/40 hover:bg-emerald-950/15 transition-all group"
+              >
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-extrabold text-slate-200">Export History (CSV)</span>
+                  <span className="text-[10px] text-slate-500 font-bold mt-0.5">Download all sessions as a spreadsheet</span>
+                </div>
+                <Download className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+              </button>
             </div>
 
             <button

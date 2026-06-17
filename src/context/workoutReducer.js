@@ -391,6 +391,60 @@ export function workoutReducer(state, action) {
       };
     }
 
+    case "SWAP_EXERCISE": {
+      if (!state.activeSession) {
+        console.warn("[workoutReducer] ⚠️ SWAP_EXERCISE called but activeSession is null.");
+        return state;
+      }
+
+      const { exerciseId, newExerciseName } = action.payload;
+      if (!newExerciseName) return state;
+
+      // Pull last-time numbers for the new exercise from the most recent
+      // completed session that contains it (any program/day).
+      let prevExerciseLog = null;
+      for (let i = state.workoutHistory.length - 1; i >= 0; i--) {
+        const found = state.workoutHistory[i].logs?.find(l => l.exerciseName === newExerciseName);
+        if (found) { prevExerciseLog = found; break; }
+      }
+
+      const updatedLogs = state.activeSession.logs.map((log) => {
+        if (log.exerciseId !== exerciseId) return log;
+
+        // Keep the slot's prescription (sets/reps/rpe/rest) but reset the
+        // logged values, since this is now a different movement.
+        const sets = log.sets.map((setObj, i) => {
+          const prevSet = prevExerciseLog && prevExerciseLog.sets && prevExerciseLog.sets[i];
+          return {
+            setNumber: i + 1,
+            weight: "",
+            repsCompleted: "",
+            isComplete: false,
+            previousWeight: prevSet ? prevSet.weight : "",
+            previousReps: prevSet ? prevSet.repsCompleted : ""
+          };
+        });
+
+        return {
+          ...log,
+          exerciseName: newExerciseName,
+          swappedFrom: log.swappedFrom || log.exerciseName,
+          notes: "",
+          sets
+        };
+      });
+
+      console.log(`[workoutReducer] 🔁 SWAP_EXERCISE -> ${exerciseId} is now "${newExerciseName}"`);
+
+      return {
+        ...state,
+        activeSession: {
+          ...state.activeSession,
+          logs: updatedLogs
+        }
+      };
+    }
+
     case "CANCEL_SESSION":
       console.log("[workoutReducer] 🗑️ Discarding activeSession");
       return {
