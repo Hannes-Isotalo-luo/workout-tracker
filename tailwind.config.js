@@ -9,6 +9,20 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
+      // Intermediate slate shades used throughout the UI for subtle hover/border
+      // states. Tailwind's default scale jumps in 100s; these fill the gaps so
+      // classes like `bg-slate-750` actually render instead of silently no-op'ing.
+      colors: {
+        slate: {
+          450: '#8695a9',
+          550: '#576274',
+          650: '#3e4c61',
+          750: '#293548',
+          755: '#27334a',
+          805: '#1c2636',
+          850: '#172033',
+        },
+      },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0' },

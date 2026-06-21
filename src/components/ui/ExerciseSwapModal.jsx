@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { X, Repeat, Search } from 'lucide-react';
+import { Repeat, Search } from 'lucide-react';
 import { getMuscleGroup, getAlternatives } from '../../utils/muscleGroups';
+import Modal from './Modal';
 
 /**
  * Lets the lifter substitute the current exercise mid-session (e.g. a
@@ -25,23 +26,7 @@ export default function ExerciseSwapModal({ exerciseName, exercisePool, onSwap, 
   }, [query, alternatives, exercisePool, exerciseName]);
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm glass-card border-violet-500/30 bg-slate-900 p-6 shadow-2xl relative transform transition-all duration-300 animate-slideUp flex flex-col max-h-[80vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
-          aria-label="Close swap"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
+    <Modal onClose={onClose} z={60} borderClass="border-violet-500/30" panelClass="flex flex-col max-h-[80vh]">
         <h3 className="text-sm font-black tracking-wider text-slate-100 mb-1 flex items-center gap-2 uppercase">
           <Repeat className="w-4.5 h-4.5 text-violet-400" />
           Swap Exercise
@@ -91,7 +76,6 @@ export default function ExerciseSwapModal({ exerciseName, exercisePool, onSwap, 
             ))
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Layers, Flame } from 'lucide-react';
+import { Layers, Flame } from 'lucide-react';
 import { calculatePlates, getWarmupSets, DEFAULT_BAR } from '../../utils/plateCalculator';
+import Modal from './Modal';
 
 /**
  * Lightweight plate + warm-up calculator surfaced from an exercise card.
@@ -18,23 +19,7 @@ export default function PlateCalculatorModal({ exerciseName, initialWeight = '',
   const hasTarget = !isNaN(parseFloat(target)) && parseFloat(target) > 0;
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm glass-card border-cyan-500/30 bg-slate-900 p-6 shadow-2xl relative transform transition-all duration-300 animate-slideUp"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
-          aria-label="Close plate calculator"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
+    <Modal onClose={onClose} z={60} borderClass="border-cyan-500/30">
         <h3 className="text-sm font-black tracking-wider text-slate-100 mb-1 flex items-center gap-2 uppercase">
           <Layers className="w-4.5 h-4.5 text-cyan-400" />
           Plate Calculator
@@ -107,7 +92,6 @@ export default function PlateCalculatorModal({ exerciseName, initialWeight = '',
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

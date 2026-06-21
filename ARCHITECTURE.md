@@ -1,8 +1,15 @@
 # ARCHITECTURE.md — Workout Tracker System Blueprint
 
-> **Version:** 1.0  
-> **Last Updated:** 2026-05-31  
+> **Version:** 2.0  
+> **Last Updated:** 2026-06-21  
 > **Status:** Source of truth for all coding agents
+>
+> **v2.0 note:** The codebase was decomposed to match this blueprint — every file
+> is now small and single-purpose (see §2 Folder Structure, which reflects the
+> actual tree). PR/streak/volume logic is centralized in `utils/`, custom
+> routines launch through the normal workout pipeline via `utils/routineAdapter`,
+> and heavy routes (Analytics/Builder/History) are lazy-loaded. The component
+> tree and tables in §3+ are indicative; §2 is authoritative for file layout.
 
 ---
 
@@ -39,64 +46,99 @@ A **mobile-first, single-page web application** for tracking hypertrophy-focused
 
 ## 2. Folder Structure
 
+> **Note:** Program/glossary CSVs are served as static assets from `public/data/`
+> (`program.csv`, `keyTerms.csv`), not bundled under `src/`.
+
 ```
 src/
-├── assets/
-│   └── data/
-│       ├── program.csv                  # Main workout program CSV (157 rows)
-│       └── keyTerms.csv                 # Glossary CSV (10 rows)
-│
 ├── components/
 │   ├── layout/
-│   │   ├── AppShell.jsx                 # Top-level layout: header + main slot
-│   │   ├── Header.jsx                   # App title bar, navigation icon
-│   │   └── BottomNav.jsx                # Mobile bottom tab bar (Workout · History · Settings)
+│   │   ├── AppShell.jsx                 # Layout frame: Header + main slot + BottomNav
+│   │   ├── Header.jsx                   # Title, cloud-sync indicator, user chip, settings button
+│   │   ├── BottomNav.jsx                # Bottom tab bar (Workout · Builder · Analytics · History)
+│   │   └── ActiveWorkoutBanner.jsx      # Shared "resume active workout" banner (self-contained)
+│   │
+│   ├── auth/
+│   │   ├── AuthGate.jsx                 # Sign-in screen for unauthenticated users
+│   │   └── AuthLoading.jsx             # Full-screen loader while auth resolves
+│   │
+│   ├── home/
+│   │   ├── HomeView.jsx                 # Select view: banner + quick-start + selector wizard
+│   │   └── QuickStartCard.jsx          # "Up next" sequential-session card
 │   │
 │   ├── selectors/
-│   │   ├── ProgramSelector.jsx          # Step 1: pick a Program (Full Body | Upper/Lower | Body Part Split)
-│   │   ├── PhaseSelector.jsx            # Step 2: pick a Phase (Weeks 1-4 | Weeks 5-8)
-│   │   └── DaySelector.jsx             # Step 3: pick a Day (e.g. "Full Body #1", "Lower Body #2")
+│   │   ├── ProgramStep.jsx             # Step 1: pick a program (CSV + custom routines)
+│   │   ├── PhaseStep.jsx               # Step 2: pick a phase
+│   │   └── DayStep.jsx                 # Step 3: pick a day → INIT_SESSION
 │   │
 │   ├── workout/
-│   │   ├── WorkoutView.jsx              # Active workout screen — renders list of ExerciseCards
-│   │   ├── ExerciseCard.jsx             # Single exercise: name, notes, RPE badge, list of SetInputs
-│   │   ├── SetInput.jsx                 # Single set row: set number, weight input, reps input, complete toggle
-│   │   ├── RestTimer.jsx                # Countdown timer (triggered on set completion)
-│   │   └── WorkoutSummary.jsx           # Post-save summary modal (total volume, sets completed)
+│   │   ├── WorkoutView.jsx             # Active workout screen — dashboard + ExerciseCard list
+│   │   ├── ExerciseCard.jsx           # Single exercise: badges, last-time ref, sets, add/remove
+│   │   ├── SetInput.jsx               # Single set row (memoized) — weight/reps/complete + e1RM
+│   │   ├── RestTimer.jsx              # Floating rest-timer overlay (±30s, dismiss)
+│   │   └── WorkoutSummary.jsx         # Post-save summary modal (volume, sets, PRs, notes)
 │   │
 │   ├── history/
-│   │   ├── HistoryView.jsx              # List of past saved sessions (date-sorted)
-│   │   ├── SessionDetail.jsx            # Expanded view of a single past workout
-│   │   └── ProgressChart.jsx            # Per-exercise line chart (weight over time via Recharts)
+│   │   ├── HistoryView.jsx            # Calendar + monthly stats + selected-day logs
+│   │   ├── SessionDetail.jsx          # Expandable card for one completed session
+│   │   └── ExerciseHistoryModal.jsx   # Per-exercise historical sets timeline
+│   │
+│   ├── analytics/
+│   │   ├── AnalyticsDashboard.jsx     # Orchestrator: computes metrics, lays out cards/charts
+│   │   ├── StrengthChart.jsx          # Per-exercise progression line chart (Recharts)
+│   │   ├── VolumeChart.jsx            # Weekly volume line chart (Recharts)
+│   │   ├── MuscleVolumeCard.jsx       # Weekly hard-sets per muscle vs. MEV/MRV
+│   │   └── RecentSessions.jsx         # Recent saved-session list
+│   │
+│   ├── builder/
+│   │   └── RoutineBuilder.jsx         # Build/edit/share custom routines; launch into workout flow
+│   │
+│   ├── settings/
+│   │   └── SettingsModal.jsx          # Alert toggles + CSV export
 │   │
 │   └── ui/
-│       ├── Button.jsx                   # Reusable styled button (primary, secondary, danger variants)
-│       ├── Badge.jsx                    # Small pill for RPE, rest time, phase labels
-│       ├── Modal.jsx                    # Generic modal/bottom-sheet wrapper
-│       └── Spinner.jsx                  # Loading spinner
+│       ├── Button.jsx                 # Reusable button (primary/secondary/ghost/danger)
+│       ├── Badge.jsx                  # Small pill (program/phase/RPE/rest)
+│       ├── Modal.jsx                  # Shared modal/bottom-sheet wrapper (backdrop, close)
+│       ├── Spinner.jsx                # Loading spinner (brand/default)
+│       ├── Toast.jsx                  # Floating status toast
+│       ├── PlateCalculatorModal.jsx   # Barbell plate + warm-up calculator
+│       └── ExerciseSwapModal.jsx      # Mid-session exercise substitution
 │
 ├── context/
-│   ├── WorkoutContext.jsx               # Context provider + useReducer for active workout session
-│   └── workoutReducer.js               # Pure reducer function + action types
+│   ├── WorkoutContext.jsx             # Provider: composes hooks, dispatchers, cloud sync, routines
+│   └── workoutReducer.js             # Pure reducer + action types
 │
 ├── hooks/
-│   ├── useWorkoutSession.js             # Custom hook: exposes context state + dispatchers
-│   ├── useProgramData.js               # Custom hook: loads + caches parsed CSV program data
-│   └── useFirestore.js                  # Custom hook: saveWorkout(), getHistory(), getExerciseHistory()
+│   ├── useWorkoutSession.js          # Canonical context consumer hook
+│   ├── useProgramData.js             # Loads + parses the program CSV on mount
+│   ├── useRestTimer.js               # Rest countdown + audio/haptic alert + tab title
+│   ├── useWakeLock.js                # Screen wake lock during active sessions
+│   ├── useWorkoutDuration.js         # Live elapsed-seconds counter
+│   ├── useSyncToast.js               # Toasts on cloud sync success/failure
+│   ├── useSharedRoutineDeepLink.js   # ?sharedRoutineId= clone flow
+│   └── useBrowserHistory.js          # Back/forward navigation ↔ view-state mapping
 │
 ├── utils/
-│   ├── csvParser.js                     # Wraps PapaParse: file → structured program object
-│   ├── exerciseIdGenerator.js           # Deterministic ID from program+phase+day+index
-│   ├── volumeCalculator.js             # Computes total volume, completed sets, etc.
-│   └── formatters.js                    # Date formatting, weight display, rest time display
+│   ├── csvParser.js                  # PapaParse: CSV → nested program map + selectors
+│   ├── exerciseIdGenerator.js        # Deterministic exercise IDs
+│   ├── volumeCalculator.js           # computeSessionTotals(), epley1RM()
+│   ├── prs.js                        # Personal-record map + detection (single source of truth)
+│   ├── streak.js                     # Consecutive-day streak
+│   ├── nextSession.js                # Next sequential session calculator
+│   ├── routineAdapter.js             # Custom routine → programData shape (RoutineBuilder bridge)
+│   ├── muscleGroups.js               # Exercise → muscle map, volume landmarks, alternatives
+│   ├── plateCalculator.js            # Plate loading + warm-up ramp math
+│   ├── exportCsv.js                  # Flatten history → downloadable CSV
+│   └── formatters.js                 # Time/date/rest formatting helpers
 │
 ├── firebase/
-│   ├── config.js                        # Firebase app init + Firestore instance export
-│   └── workoutService.js               # Firestore CRUD: addWorkoutLog(), queryHistory(), queryExercise()
+│   ├── config.js                     # Firebase app init + Auth + Firestore instances
+│   └── workoutService.js            # All Firestore CRUD (sessions, config, routines, shares)
 │
-├── App.jsx                              # Root component: routing via view state, context provider wrapping
-├── main.jsx                             # Vite entry point: renders <App /> into #root
-└── index.css                            # Tailwind directives (@tailwind base/components/utilities) + dark root
+├── App.jsx                           # Root: provider + controller (gating, handlers, router)
+├── main.jsx                          # Vite entry point + service-worker registration
+└── index.css                         # Tailwind directives + dark-mode base + component utilities
 ```
 
 ### Top-level Project Files (outside `src/`)

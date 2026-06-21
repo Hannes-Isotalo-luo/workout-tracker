@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Calendar, Dumbbell } from 'lucide-react';
 import { useWorkout } from '../../context/WorkoutContext';
+import Modal from '../ui/Modal';
 
 export default function ExerciseHistoryModal({ exerciseName, onClose }) {
   const { workoutHistory } = useWorkout();
@@ -27,11 +28,7 @@ export default function ExerciseHistoryModal({ exerciseName, onClose }) {
   historyList.sort((a, b) => b.date - a.date);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      {/* Backdrop click close */}
-      <div className="absolute inset-0 cursor-default" onClick={onClose} />
-      
-      <div className="w-full max-w-md glass-card border-violet-500/30 bg-slate-900 p-5 shadow-2xl relative z-10 transform transition-all duration-300 animate-slideUp max-h-[80vh] flex flex-col">
+    <Modal onClose={onClose} anchorBottom maxWidth="max-w-md" borderClass="border-violet-500/30" panelClass="max-h-[80vh] flex flex-col" showClose={false}>
         {/* Top highlighted border accent */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/50 via-fuchsia-500/50 to-transparent" />
 
@@ -110,7 +107,6 @@ export default function ExerciseHistoryModal({ exerciseName, onClose }) {
             Close
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

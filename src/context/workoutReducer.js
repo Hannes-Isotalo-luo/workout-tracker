@@ -1,4 +1,4 @@
-import { generateExerciseId } from '../utils/csvParser.js';
+import { generateExerciseId } from '../utils/exerciseIdGenerator.js';
 
 let localHistory = [];
 let localActiveState = null;
@@ -14,6 +14,7 @@ try {
 // Default Initial State
 const defaultState = {
   programData: null,         // Parsed nested program CSV data (Program -> Phase -> Day -> Exercise[])
+  routinePrograms: {},       // User custom routines, adapted to programData shape and merged in
   isLoading: true,           // Loading state for CSV parsing
   error: null,               // Error string if parsing fails
   selectedProgram: localActiveState ? localActiveState.selectedProgram : null,
@@ -60,6 +61,25 @@ export function workoutReducer(state, action) {
         ...state,
         isLoading: false,
         error: action.payload
+      };
+
+    case "SET_ROUTINE_PROGRAMS":
+      // Custom routines adapted to programData shape; merged with CSV programs
+      // at the provider level so they flow through the normal workout pipeline.
+      return {
+        ...state,
+        routinePrograms: action.payload || {}
+      };
+
+    case "SET_SESSION_NOTES":
+      if (!state.activeSession) return state;
+      return {
+        ...state,
+        activeSession: {
+          ...state.activeSession,
+          notes: action.payload,
+          sessionNote: action.payload
+        }
       };
 
     case "SELECT_PROGRAM":
@@ -336,7 +356,11 @@ export function workoutReducer(state, action) {
           setNumber: nextSetNumber,
           weight: lastSet ? lastSet.weight : "",
           repsCompleted: lastSet ? lastSet.repsCompleted : "",
-          isComplete: false
+          isComplete: false,
+          // Keep the set shape consistent with INIT_SESSION so "last time"
+          // references and PR detection don't choke on missing fields.
+          previousWeight: "",
+          previousReps: ""
         };
 
         return {
@@ -428,7 +452,6 @@ export function workoutReducer(state, action) {
         return {
           ...log,
           exerciseName: newExerciseName,
-          swappedFrom: log.swappedFrom || log.exerciseName,
           notes: "",
           sets
         };
@@ -594,6 +617,7 @@ export function workoutReducer(state, action) {
         currentView: "select",
         workoutHistory: [],
         enrolledProgram: null,
+        routinePrograms: {},
         restTimer: {
           isRunning: false,
           seconds: 0,
