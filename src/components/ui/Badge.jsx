@@ -3,11 +3,10 @@
  * override. Used for program/phase/RPE/rest tags.
  */
 const TONES = {
-  slate: 'bg-slate-800 text-slate-400 border-slate-700',
-  violet: 'bg-violet-500/10 text-violet-400 border-violet-500/15',
-  fuchsia: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/15',
-  cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/15',
-  emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  slate:  'bg-surf-chip text-[#8b96a8] border-line-c',
+  violet: 'bg-accent/10 text-accent border-accent/20',
+  green:  'bg-gain/10 text-gain-t border-gain/20',
+  amber:  'bg-peak/10 text-peak border-peak/20',
 };
 
 export default function Badge({ tone = 'slate', className = '', children }) {

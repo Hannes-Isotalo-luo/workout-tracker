@@ -12,11 +12,11 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Hanken Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0f172a; /* slate-900 */
-  color: #f1f5f9;           /* slate-100 */
+  background-color: #101725;
+  color: #f8fafc;
   padding-top: env(safe-area-inset-top);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
@@ -48,41 +48,31 @@ html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155; /* slate-700 */
+  background: #1d2738;
   border-radius: 2px;
 }
 
-/* ─── Utility: glass card ────────────────────────────── */
-@keyframes goldGlow {
-  0%, 100% {
-    box-shadow: 0 0 4px rgba(245, 158, 11, 0.2);
-    border-color: rgba(245, 158, 11, 0.35);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.55);
-    border-color: rgba(245, 158, 11, 0.75);
-  }
-}
-
 @layer components {
+  /* Solid card surface — no frosted glass, matches design token --bg-card */
   .glass-card {
-    @apply bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-2xl;
+    @apply bg-surf border border-line-c rounded-[18px];
   }
 
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* Input field — uses canvas bg (#101725) with input border (#34415c) */
   .input-field {
-    @apply w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5
-           text-slate-100 text-center text-lg font-semibold
-           placeholder-slate-500 outline-none
+    @apply w-full bg-canvas border border-line-in rounded-[11px] px-3 py-2.5
+           text-[#f8fafc] text-center text-lg font-semibold
+           placeholder-[#5b6678] outline-none
            transition-all duration-200
-           focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30;
+           focus:border-accent focus:ring-2 focus:ring-accent/30;
   }
 
+  /* RPE badge — amber (#e0a93b) without animated glow */
   .rpe-badge-prominent {
-    @apply text-xs font-black bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full border border-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.25)] select-none;
-    animation: goldGlow 3s infinite ease-in-out;
+    @apply text-xs font-black bg-peak text-slate-950 px-2.5 py-0.5 rounded-full border border-peak/60 select-none;
   }
 }

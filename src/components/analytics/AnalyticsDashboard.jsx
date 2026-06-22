@@ -18,10 +18,9 @@ export default function AnalyticsDashboard() {
   const { workoutHistory, customGoals, updateCustomGoal } = useWorkout();
   const [selectedExercise, setSelectedExercise] = useState('Back Squat');
   const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
-  const [selectedMetric, setSelectedMetric] = useState('weight'); // 'weight' | '1rm'
+  const [selectedMetric, setSelectedMetric] = useState('weight');
   const [activePointState, setActivePointState] = useState(null);
 
-  // Exercises logged at least twice (fallback to defaults).
   const dynamicExercises = (() => {
     const counts = {};
     workoutHistory?.forEach((session) => {
@@ -39,7 +38,6 @@ export default function AnalyticsDashboard() {
 
   const currentGoal = customGoals[selectedExercise] || 0;
 
-  // Per-session strength progression for the selected exercise.
   const currentData = (() => {
     const points = [];
     let count = 1;
@@ -68,7 +66,6 @@ export default function AnalyticsDashboard() {
     return points;
   })();
 
-  // Weekly summed volume (grouped by Sunday-anchored week).
   const weeklyData = (() => {
     const weekly = {};
     workoutHistory?.forEach((session) => {
@@ -139,7 +136,6 @@ export default function AnalyticsDashboard() {
         })
     : [];
 
-  // Weekly hard-sets per muscle group (last 7 days).
   const muscleRows = (() => {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const counts = {};
@@ -167,11 +163,35 @@ export default function AnalyticsDashboard() {
       .sort((a, b) => b.sets - a.sets);
   })();
 
-  // Explicit class strings (Tailwind can't see dynamically-built class names).
+  // Stat card definitions using design-system colors
   const statCards = [
-    { label: 'Sessions', value: totalSessionsCount, badge: sessionsBadge, icon: Dumbbell, iconWrap: 'bg-violet-500/15', iconColor: 'text-violet-400', badgeColor: 'text-emerald-400' },
-    { label: 'Volume', value: displayVolumeStr, badge: hasHistory ? 'Live Volume' : '0 kg', icon: TrendingUp, iconWrap: 'bg-cyan-500/15', iconColor: 'text-cyan-400', badgeColor: 'text-emerald-400' },
-    { label: 'Streak', value: displayStreakStr, badge: hasHistory ? 'Current Streak' : 'Consistency', icon: Flame, iconWrap: 'bg-amber-500/15', iconColor: 'text-amber-500', badgeColor: 'text-amber-400' },
+    {
+      label: 'Sessions',
+      value: totalSessionsCount,
+      badge: sessionsBadge,
+      icon: Dumbbell,
+      iconWrap: 'bg-accent/10',
+      iconColor: 'text-accent',
+      badgeColor: 'text-gain-t',
+    },
+    {
+      label: 'Volume',
+      value: displayVolumeStr,
+      badge: hasHistory ? 'Live Volume' : '0 kg',
+      icon: TrendingUp,
+      iconWrap: 'bg-gain/10',
+      iconColor: 'text-gain-t',
+      badgeColor: 'text-gain-t',
+    },
+    {
+      label: 'Streak',
+      value: displayStreakStr,
+      badge: hasHistory ? 'Current Streak' : 'Consistency',
+      icon: Flame,
+      iconWrap: 'bg-peak/10',
+      iconColor: 'text-peak',
+      badgeColor: 'text-peak',
+    },
   ];
 
   return (
@@ -179,25 +199,25 @@ export default function AnalyticsDashboard() {
       <ActiveWorkoutBanner />
 
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-violet-400" />
+        <h2 className="text-xl font-bold tracking-tight text-[#f8fafc] flex items-center gap-2">
+          <Activity className="w-5 h-5 text-accent" />
           Strength Analytics
         </h2>
-        <p className="text-xs text-slate-400 mt-0.5">Real-time metrics, streaks, and strength progression.</p>
+        <p className="text-xs text-[#8b96a8] mt-0.5">Real-time metrics, streaks, and strength progression.</p>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-2.5">
         {statCards.map(({ label, value, badge, icon: Icon, iconWrap, iconColor, badgeColor }) => (
-          <div key={label} className="glass-card p-3 flex flex-col justify-between relative overflow-hidden group">
+          <div key={label} className="glass-card p-3 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+              <span className="text-[10px] font-bold text-[#5b6678] uppercase tracking-wider">{label}</span>
               <div className={`w-7 h-7 rounded-lg ${iconWrap} flex items-center justify-center`}>
                 <Icon className={`w-4 h-4 ${iconColor}`} />
               </div>
             </div>
             <div>
-              <p className="text-xl font-black text-slate-100 tracking-tight">{value}</p>
+              <p className="text-xl font-black text-[#f8fafc] tracking-tight">{value}</p>
               <p className={`text-[10px] ${badgeColor} font-semibold flex items-center gap-0.5 mt-0.5`}>
                 {label !== 'Streak' && <ArrowUpRight className="w-2.5 h-2.5" />} {badge}
               </p>
@@ -213,20 +233,20 @@ export default function AnalyticsDashboard() {
             <div className="flex items-center gap-1.5">
               <h3
                 onClick={() => setSelectedExerciseForHistory(selectedExercise)}
-                className="text-sm font-bold text-slate-200 hover:text-violet-400 cursor-pointer flex items-center gap-1.5 transition-colors"
+                className="text-sm font-bold text-[#d3dae4] hover:text-accent cursor-pointer flex items-center gap-1.5 transition-colors"
               >
-                Strength: <span className="underline decoration-dotted decoration-violet-400">{selectedExercise}</span>
+                Strength: <span className="underline decoration-dotted decoration-accent">{selectedExercise}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedExerciseForHistory(selectedExercise)}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-755 text-slate-400 hover:text-slate-200 border border-slate-700/80 transition-colors flex items-center justify-center"
+                className="p-1 rounded bg-surf-chip hover:bg-surf-hi text-[#8b96a8] hover:text-[#d3dae4] border border-line-c transition-colors flex items-center justify-center"
                 title="View full exercise history"
               >
-                <Calendar className="w-3.5 h-3.5 text-violet-400" />
+                <Calendar className="w-3.5 h-3.5 text-accent" />
               </button>
             </div>
-            <div className="flex gap-1 bg-slate-900/60 p-0.5 rounded-xl border border-slate-800/80 overflow-x-auto max-w-[150px] sm:max-w-none scrollbar-none">
+            <div className="flex gap-1 bg-canvas p-0.5 rounded-xl border border-line-sub overflow-x-auto max-w-[150px] sm:max-w-none">
               {dynamicExercises.map((ex) => (
                 <button
                   key={ex}
@@ -234,10 +254,10 @@ export default function AnalyticsDashboard() {
                     setSelectedExercise(ex);
                     setActivePointState(null);
                   }}
-                  className={`min-h-[36px] px-3 py-2 text-[11px] font-extrabold rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                  className={`min-h-[36px] px-3 py-2 text-[11px] font-extrabold rounded-[9px] transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                     selectedExercise === ex
-                      ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-md shadow-violet-500/15'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-accent text-white shadow-md shadow-accent/20'
+                      : 'text-[#8b96a8] hover:text-[#d3dae4]'
                   }`}
                 >
                   {ex.split(' ').slice(-2).join(' ') || ex}
@@ -246,19 +266,23 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2.5 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/40">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800/50">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Chart Metric</span>
-              <div className="flex bg-slate-950/80 p-0.5 rounded-lg border border-slate-800/80">
+          <div className="flex flex-col gap-2.5 bg-canvas p-2.5 rounded-[13px] border border-line-sub">
+            <div className="flex items-center justify-between pb-2 border-b border-line-sub">
+              <span className="text-[10px] font-bold text-[#5b6678] uppercase tracking-wider">Chart Metric</span>
+              <div className="flex bg-surf-chip p-0.5 rounded-[9px] border border-line-c">
                 <button
                   onClick={() => setSelectedMetric('weight')}
-                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${selectedMetric === 'weight' ? 'bg-violet-500/20 text-violet-300' : 'text-slate-500 hover:text-slate-300'}`}
+                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${
+                    selectedMetric === 'weight' ? 'bg-accent/20 text-accent' : 'text-[#5b6678] hover:text-[#d3dae4]'
+                  }`}
                 >
                   Max Weight
                 </button>
                 <button
                   onClick={() => setSelectedMetric('1rm')}
-                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${selectedMetric === '1rm' ? 'bg-violet-500/20 text-violet-300' : 'text-slate-500 hover:text-slate-300'}`}
+                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${
+                    selectedMetric === '1rm' ? 'bg-accent/20 text-accent' : 'text-[#5b6678] hover:text-[#d3dae4]'
+                  }`}
                 >
                   Est. 1RM
                 </button>
@@ -267,18 +291,18 @@ export default function AnalyticsDashboard() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Selected ({activePoint?.week || 'N/A'})</p>
-                <p className="text-base font-black text-violet-400 tracking-tight">
-                  {activePoint?.[metricKey] || 0} <span className="text-xs font-normal text-slate-400">kg</span>
+                <p className="text-[10px] font-bold text-[#5b6678] uppercase tracking-wider">Selected ({activePoint?.week || 'N/A'})</p>
+                <p className="text-base font-black text-accent tracking-tight">
+                  {activePoint?.[metricKey] || 0} <span className="text-xs font-normal text-[#8b96a8]">kg</span>
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                <p className="text-[10px] font-bold text-[#5b6678] uppercase tracking-wider">
                   Progress ({currentData[0]?.week || 'N/A'} → {activePoint?.week || 'N/A'})
                 </p>
-                <p className={`text-base font-black tracking-tight ${progressWeight >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <p className={`text-base font-black tracking-tight ${progressWeight >= 0 ? 'text-gain-t' : 'text-rose-400'}`}>
                   {progressWeight >= 0 ? `+${progressWeight.toFixed(1)}` : progressWeight.toFixed(1)} kg{' '}
-                  <span className="text-xs font-normal text-slate-400">
+                  <span className="text-xs font-normal text-[#8b96a8]">
                     ({progressWeight >= 0 ? '+' : ''}{progressPercent}%)
                   </span>
                 </p>
@@ -286,10 +310,10 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-805/85">
+          <div className="flex items-center justify-between bg-canvas p-2.5 rounded-[13px] border border-line-sub">
             <div className="flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5 text-rose-500" />
-              <span className="text-xs font-bold text-slate-300">Target Strength Goal:</span>
+              <Award className="w-3.5 h-3.5 text-peak" />
+              <span className="text-xs font-bold text-[#d3dae4]">Target Strength Goal:</span>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -297,25 +321,25 @@ export default function AnalyticsDashboard() {
                 inputMode="decimal"
                 value={currentGoal}
                 onChange={(e) => updateCustomGoal(selectedExercise, parseFloat(e.target.value) || 0)}
-                className="w-16 bg-slate-950/80 text-white text-xs font-black text-center py-1 px-1.5 rounded-lg border border-slate-800 focus:outline-none focus:border-rose-500/80 transition-colors"
+                className="w-16 bg-canvas text-[#f8fafc] text-xs font-black text-center py-1 px-1.5 rounded-[9px] border border-line-in focus:outline-none focus:border-accent/80 transition-colors"
               />
-              <span className="text-[10px] text-slate-400 font-bold">kg</span>
+              <span className="text-[10px] text-[#8b96a8] font-bold">kg</span>
             </div>
           </div>
         </div>
 
         <StrengthChart data={currentData} metricKey={metricKey} goal={currentGoal} onChartClick={handleChartClick} />
 
-        <p className="text-[10px] text-center text-slate-500 italic mt-1 select-none">
-          💡 Tap any data point on the chart to view localized progression statistics.
+        <p className="text-[10px] text-center text-[#5b6678] italic mt-1 select-none">
+          Tap any data point on the chart to view localized progression statistics.
         </p>
       </div>
 
       {/* Weekly volume */}
       <div className="glass-card p-4 space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-200">Weekly Training Volume</h3>
-          <p className="text-[11px] text-slate-400 font-medium">Week-over-week summed workout volume progression</p>
+          <h3 className="text-sm font-bold text-[#d3dae4]">Weekly Training Volume</h3>
+          <p className="text-[11px] text-[#8b96a8] font-medium">Week-over-week summed workout volume progression</p>
         </div>
         <VolumeChart data={weeklyData} />
       </div>

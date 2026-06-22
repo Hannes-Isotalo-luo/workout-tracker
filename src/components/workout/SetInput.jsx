@@ -1,10 +1,9 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, Trophy } from 'lucide-react';
 
 /**
  * SetInput - A single workout set logging row.
- * Includes set number, native decimal inputs for weight/reps with no spinners,
- * and a high-contrast checkmark toggle that changes color upon completion.
+ * States: active (violet left-border), complete (green left-border + locked inputs).
  */
 function SetInput({
   setNumber,
@@ -23,39 +22,26 @@ function SetInput({
 }) {
   const handleWeightChange = (e) => {
     let value = e.target.value;
-    
-    // Normalize comma to dot
     value = value.replace(',', '.');
-    
-    // Allow only digits and a single dot
     value = value.replace(/[^0-9.]/g, '');
-    
-    // Prevent multiple dots
     const dots = value.split('.');
     if (dots.length > 2) {
       value = dots[0] + '.' + dots.slice(1).join('');
     }
-    
     console.log(`[SetInput] [Set #${setNumber}] Weight value updated: "${value}"`);
-    if (onWeightChange) {
-      onWeightChange(value);
-    }
+    if (onWeightChange) onWeightChange(value);
   };
 
   const handleRepsChange = (e) => {
     const value = e.target.value;
     console.log(`[SetInput] [Set #${setNumber}] Reps value updated: "${value}"`);
-    if (onRepsChange) {
-      onRepsChange(value);
-    }
+    if (onRepsChange) onRepsChange(value);
   };
 
   const handleToggleComplete = () => {
     console.log(`[SetInput] [Set #${setNumber}] Complete toggle clicked. New state: ${!isComplete}`);
     if (navigator.vibrate) navigator.vibrate(50);
-    if (onToggleComplete) {
-      onToggleComplete();
-    }
+    if (onToggleComplete) onToggleComplete();
   };
 
   const parsedWeight = parseFloat(weight);
@@ -65,22 +51,24 @@ function SetInput({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className={`flex items-center gap-2 sm:gap-3 py-2 px-3 rounded-xl transition-all duration-300 ${
-        isComplete 
-          ? 'bg-emerald-500/10 border border-emerald-500/20 shadow-[inset_0_1px_1px_rgba(16,185,129,0.05)]' 
-          : 'bg-slate-800/20 border border-slate-800/40'
-      }`}>
+      <div
+        className={`flex items-center gap-2 sm:gap-3 py-2 px-3 rounded-[13px] transition-all duration-300 ${
+          isComplete
+            ? 'bg-surf-ok border-l-[3px] border-l-gain border border-line-ok'
+            : 'bg-surf-hi border-l-[3px] border-l-accent border border-line-hi'
+        }`}
+      >
         {/* Set Number */}
         <div className="min-w-[52px] flex items-center justify-center flex-shrink-0">
           <span className={`text-xs font-bold tracking-wider ${
-            isComplete ? 'text-emerald-400 font-extrabold' : 'text-slate-400'
+            isComplete ? 'text-gain-t font-extrabold' : 'text-[#8b96a8]'
           }`}>
             SET {setNumber}
           </span>
         </div>
 
         {/* Weight Input */}
-        <div className="flex-1 min-w-[70px] relative">
+        <div className="flex-1 min-w-[70px]">
           <input
             type="text"
             inputMode="decimal"
@@ -90,17 +78,17 @@ function SetInput({
             onChange={handleWeightChange}
             placeholder={previousWeight ? `Last: ${previousWeight}` : placeholderWeight}
             disabled={disabled || isComplete}
-            className={`input-field text-sm py-1.5 px-1.5 h-11 ${
-              isComplete 
-                ? 'opacity-50 bg-slate-900/60 border-slate-800 text-slate-400 focus:ring-0 focus:border-slate-800 select-none' 
-                : 'bg-slate-800 hover:bg-slate-800/80 border-slate-700/80 text-slate-100'
+            className={`input-field text-[19px] font-bold py-1.5 px-1.5 h-11 tabular-nums ${
+              isComplete
+                ? 'opacity-50 bg-canvas border-line-sub text-[#8b96a8] focus:ring-0 focus:border-line-sub select-none'
+                : 'bg-canvas border-line-in text-[#f8fafc]'
             }`}
             aria-label={`Weight for set ${setNumber}`}
           />
         </div>
 
-        {/* Reps Input (type="number", inputMode="numeric") */}
-        <div className="flex-1 min-w-[55px] relative">
+        {/* Reps Input */}
+        <div className="flex-1 min-w-[55px]">
           <input
             type="number"
             inputMode="numeric"
@@ -108,47 +96,48 @@ function SetInput({
             onChange={handleRepsChange}
             placeholder={previousReps ? `Last: ${previousReps}` : placeholderReps}
             disabled={disabled || isComplete}
-            className={`input-field text-sm py-1.5 px-1.5 h-11 ${
-              isComplete 
-                ? 'opacity-50 bg-slate-900/60 border-slate-800 text-slate-400 focus:ring-0 focus:border-slate-800 select-none' 
-                : 'bg-slate-800 hover:bg-slate-800/80 border-slate-700/80 text-slate-100'
+            className={`input-field text-[19px] font-bold py-1.5 px-1.5 h-11 tabular-nums ${
+              isComplete
+                ? 'opacity-50 bg-canvas border-line-sub text-[#8b96a8] focus:ring-0 focus:border-line-sub select-none'
+                : 'bg-canvas border-line-in text-[#f8fafc]'
             }`}
             aria-label={`Reps for set ${setNumber}`}
           />
         </div>
 
-        {/* Checkmark Button Toggle */}
+        {/* Checkmark Button */}
         <button
           type="button"
           onClick={handleToggleComplete}
           disabled={disabled}
           aria-label={`Toggle set ${setNumber} completion`}
-          className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all duration-300 transform active:scale-95 outline-none flex-shrink-0 ${
+          className={`w-11 h-11 rounded-[11px] flex items-center justify-center border transition-all duration-300 active:scale-95 outline-none flex-shrink-0 ${
             isComplete
-              ? 'bg-emerald-500 border-emerald-500 text-slate-950 scale-100 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-              : 'bg-slate-900/50 border-slate-700 text-transparent hover:border-slate-500 hover:text-slate-400'
+              ? 'bg-gain border-gain shadow-[0_0_10px_rgba(47,170,120,0.25)]'
+              : 'bg-transparent border-line-in hover:border-[#8b96a8]'
           }`}
         >
           <Check className={`w-5 h-5 stroke-[3px] transition-transform duration-300 ${
-            isComplete ? 'scale-110 text-slate-950' : 'scale-75 text-slate-500'
+            isComplete ? 'scale-110 text-[#0c1a14]' : 'scale-75 text-[#5b6678]'
           }`} />
         </button>
       </div>
 
-      {/* Footer Sub-row for PR badge and e1RM info */}
+      {/* PR badge and e1RM info */}
       {(isPR || hasE1RM) && (
         <div className="flex items-center justify-between px-3 text-[10px] font-bold -mt-0.5 mb-1.5 animate-fadeIn">
           <div>
             {isPR && (
-              <span className="text-amber-400 flex items-center gap-1">
-                🏆 <span className="uppercase tracking-wider">New Personal Record!</span>
+              <span className="text-peak flex items-center gap-1">
+                <Trophy className="w-3 h-3" />
+                <span className="uppercase tracking-wider">New Personal Record!</span>
               </span>
             )}
           </div>
           <div>
             {hasE1RM && (
-              <span className="text-slate-400">
-                e1RM: <span className="text-slate-200 font-extrabold">{e1RM} kg</span>
+              <span className="text-[#6b7689]">
+                e1RM: <span className="text-[#d3dae4] font-extrabold">{e1RM} kg</span>
               </span>
             )}
           </div>

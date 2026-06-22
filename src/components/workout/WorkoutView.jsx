@@ -59,10 +59,10 @@ export default function WorkoutView({
 
   if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-900 min-h-[50vh]">
-        <AlertCircle className="w-12 h-12 text-slate-500 mb-4 animate-pulse" />
-        <h3 className="text-lg font-bold text-slate-200">No Active Session</h3>
-        <p className="text-sm text-slate-400 mt-2 max-w-xs">Please select a program day to begin.</p>
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-canvas min-h-[50vh]">
+        <AlertCircle className="w-12 h-12 text-[#5b6678] mb-4 animate-pulse" />
+        <h3 className="text-lg font-bold text-[#f8fafc]">No Active Session</h3>
+        <p className="text-sm text-[#8b96a8] mt-2 max-w-xs">Please select a program day to begin.</p>
       </div>
     );
   }
@@ -80,39 +80,39 @@ export default function WorkoutView({
   const toggleNotes = (exerciseId) => setExpandedNotes((prev) => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
 
   return (
-    <div className="space-y-6 bg-slate-900 text-slate-100 min-h-screen pb-24">
-      {/* Session dashboard */}
-      <div className="glass-card p-4 border-slate-800 bg-slate-900/90 backdrop-blur-xl shadow-lg shadow-slate-950/40">
+    <div className="space-y-6 bg-canvas text-[#f8fafc] min-h-screen pb-24">
+      {/* Session dashboard — breathes on background, no card wrapper */}
+      <div className="px-[18px] pt-4 pb-2">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+            <h2 className="text-2xl font-bold tracking-tight text-[#f8fafc]" style={{ letterSpacing: '-0.02em' }}>
               {session.day}
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-bold bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-800">
+              <span className="text-xs font-bold bg-surf-chip px-2 py-0.5 rounded text-[#8b96a8]">
                 {session.program}
               </span>
-              <span className="text-xs font-bold bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-800">
+              <span className="text-xs font-bold bg-surf-chip px-2 py-0.5 rounded text-[#8b96a8]">
                 {session.phase}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-            <Clock className="w-4 h-4 text-violet-400 animate-pulse" />
-            <span className="text-sm font-mono font-bold text-violet-400">{formatTime(duration)}</span>
+          <div className="flex items-center gap-1.5 bg-surf px-3 py-1.5 rounded-xl border border-line-c">
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span className="text-sm font-mono font-bold text-accent">{formatTime(duration)}</span>
           </div>
         </div>
 
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+          <div className="flex items-center justify-between text-xs font-bold text-[#8b96a8]">
             <span>WORKOUT PROGRESS</span>
-            <span className="text-violet-400 font-extrabold">
+            <span className="text-accent font-extrabold">
               {progressPercent}% ({completedSets}/{totalSets} Sets)
             </span>
           </div>
-          <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div className="w-full h-1.5 bg-line-sub rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500 ease-out"
+              className="h-full bg-accent transition-all duration-500 ease-out"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -120,7 +120,7 @@ export default function WorkoutView({
       </div>
 
       {/* Exercises */}
-      <div className="space-y-4">
+      <div className="space-y-[14px] px-[18px]">
         {session.logs.map((exercise, exIndex) => (
           <ExerciseCard
             key={exercise.exerciseId}
@@ -140,22 +140,22 @@ export default function WorkoutView({
       </div>
 
       {/* Bottom actions */}
-      <div className="flex flex-col gap-3 mt-8">
+      <div className="flex flex-col gap-3 mt-8 px-[18px]">
         <button
           type="button"
           onClick={onSave}
           disabled={completedSets === 0}
-          className="w-full py-4 px-6 rounded-2xl font-bold tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-violet-500/10 transition-all duration-300 transform active:scale-[0.98] bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white disabled:opacity-40 disabled:pointer-events-none"
+          className="w-full py-4 px-6 rounded-[15px] font-bold text-[15px] tracking-wide flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(109,92,240,0.28)] transition-all duration-300 active:scale-[0.97] bg-accent hover:bg-accent/90 text-white disabled:opacity-40 disabled:pointer-events-none"
         >
           <Award className="w-5 h-5" />
-          SAVE WORKOUT LOG
+          FINISH WORKOUT
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="w-full py-3.5 px-6 rounded-2xl font-bold text-slate-400 hover:text-slate-200 bg-transparent border border-slate-800 hover:border-slate-700 transition-all duration-200"
+          className="w-full py-2 text-[13px] font-semibold text-[#7a8499] transition-all duration-200 text-center"
         >
-          DISCARD CURRENT WORKOUT
+          Discard session
         </button>
       </div>
 

@@ -5,8 +5,6 @@ import Modal from './Modal';
 
 /**
  * Lightweight plate + warm-up calculator surfaced from an exercise card.
- * Opens with the set's current/suggested weight pre-filled and lets the
- * lifter tweak the target to see per-side plate loading and a warm-up ramp.
  */
 export default function PlateCalculatorModal({ exerciseName, initialWeight = '', onClose }) {
   const [target, setTarget] = useState(() => {
@@ -19,17 +17,16 @@ export default function PlateCalculatorModal({ exerciseName, initialWeight = '',
   const hasTarget = !isNaN(parseFloat(target)) && parseFloat(target) > 0;
 
   return (
-    <Modal onClose={onClose} z={60} borderClass="border-cyan-500/30">
-        <h3 className="text-sm font-black tracking-wider text-slate-100 mb-1 flex items-center gap-2 uppercase">
-          <Layers className="w-4.5 h-4.5 text-cyan-400" />
+    <Modal onClose={onClose} z={60} borderClass="border-accent/30">
+        <h3 className="text-sm font-black tracking-wider text-[#f8fafc] mb-1 flex items-center gap-2 uppercase">
+          <Layers className="w-4.5 h-4.5 text-accent" />
           Plate Calculator
         </h3>
         {exerciseName && (
-          <p className="text-[11px] text-slate-500 font-bold mb-4 truncate">{exerciseName}</p>
+          <p className="text-[11px] text-[#5b6678] font-bold mb-4 truncate">{exerciseName}</p>
         )}
 
-        {/* Target weight input */}
-        <label htmlFor="plate-target" className="text-[10px] font-black text-slate-400 uppercase tracking-wider block pl-1 mb-1.5">
+        <label htmlFor="plate-target" className="text-[10px] font-black text-[#5b6678] uppercase tracking-wider block pl-1 mb-1.5">
           Target Weight (kg) · {barWeight}kg bar
         </label>
         <input
@@ -39,53 +36,51 @@ export default function PlateCalculatorModal({ exerciseName, initialWeight = '',
           value={target}
           onChange={(e) => setTarget(e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''))}
           placeholder="e.g. 100"
-          className="input-field w-full text-base font-bold py-2.5 px-3 bg-slate-800 border-slate-700 text-slate-100 mb-4"
+          className="input-field w-full text-base font-bold py-2.5 px-3 mb-4"
         />
 
-        {/* Per-side plate breakdown */}
-        <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800 mb-4">
+        <div className="bg-canvas p-4 rounded-[13px] border border-line-sub mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Load per side</span>
-            <span className="text-[10px] font-bold text-slate-500">{achievable} kg total</span>
+            <span className="text-[10px] font-black text-[#5b6678] uppercase tracking-wider">Load per side</span>
+            <span className="text-[10px] font-bold text-[#5b6678]">{achievable} kg total</span>
           </div>
           {hasTarget && perSide.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {perSide.map((plate, i) => (
                 <span
                   key={i}
-                  className="text-sm font-extrabold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 px-2.5 py-1 rounded-lg"
+                  className="text-sm font-extrabold bg-accent/10 text-accent border border-accent/25 px-2.5 py-1 rounded-[9px]"
                 >
                   {plate}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-slate-500 font-bold">
+            <p className="text-xs text-[#5b6678] font-bold">
               {hasTarget ? 'Just the empty bar.' : 'Enter a target weight above.'}
             </p>
           )}
           {leftover > 0 && (
-            <p className="text-[10px] text-amber-400 font-bold mt-2">
+            <p className="text-[10px] text-peak font-bold mt-2">
               ⚠ {leftover}kg can't be matched with standard plates (closest: {achievable}kg).
             </p>
           )}
         </div>
 
-        {/* Warm-up ramp */}
         {warmups.length > 0 && (
           <div className="space-y-2">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Flame className="w-3.5 h-3.5 text-orange-400" /> Suggested warm-up
+            <span className="text-[10px] font-black text-[#5b6678] uppercase tracking-wider flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-peak" /> Suggested warm-up
             </span>
             <div className="space-y-1.5">
               {warmups.map((s, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between text-xs bg-slate-950/40 border border-slate-800 rounded-xl px-3 py-2"
+                  className="flex items-center justify-between text-xs bg-canvas border border-line-sub rounded-[11px] px-3 py-2"
                 >
-                  <span className="text-slate-500 font-bold">{s.label}</span>
-                  <span className="text-slate-200 font-extrabold">
-                    {s.weight} kg <span className="text-slate-500 font-bold">× {s.reps}</span>
+                  <span className="text-[#5b6678] font-bold">{s.label}</span>
+                  <span className="text-[#d3dae4] font-extrabold">
+                    {s.weight} kg <span className="text-[#5b6678] font-bold">× {s.reps}</span>
                   </span>
                 </div>
               ))}

@@ -7,12 +7,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Hanken Grotesk', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
-      // Intermediate slate shades used throughout the UI for subtle hover/border
-      // states. Tailwind's default scale jumps in 100s; these fill the gaps so
-      // classes like `bg-slate-750` actually render instead of silently no-op'ing.
       colors: {
+        // Existing intermediate slate shades (kept for any residual usage)
         slate: {
           450: '#8695a9',
           550: '#576274',
@@ -22,6 +20,24 @@ export default {
           805: '#1c2636',
           850: '#172033',
         },
+        // ── Design system semantic accent colors ────────────────
+        accent:    '#6d5cf0',    // violet — active / in-progress / primary action
+        gain:      '#2faa78',    // green — completed / done / positive delta
+        'gain-t':  '#5cc99a',    // green text on dark backgrounds
+        peak:      '#e0a93b',    // amber — PR / milestone / RPE 9+ warning
+        // ── Background tokens ────────────────────────────────────
+        canvas:       '#101725', // screen background
+        'surf':       '#182031', // default card surface
+        'surf-hi':    '#1b2538', // card in violet/active state
+        'surf-ok':    '#16241f', // card in green/complete state
+        'surf-nav':   '#131b29', // bottom navigation bar
+        'surf-chip':  '#222e44', // icon buttons, quiet chips
+        // ── Border tokens ────────────────────────────────────────
+        'line-sub':   '#1d2738', // section dividers, card borders
+        'line-c':     '#232e42', // default card border
+        'line-hi':    '#2e3a52', // violet-state card border
+        'line-ok':    '#21433a', // green-state card border
+        'line-in':    '#34415c', // input field border
       },
       keyframes: {
         fadeIn: {

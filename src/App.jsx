@@ -160,7 +160,7 @@ function MainAppContent() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
-        <Dumbbell className="w-10 h-10 text-violet-500 animate-spin mb-4" />
+        <Dumbbell className="w-10 h-10 text-accent animate-spin mb-4" />
         <h3 className="text-lg font-bold text-slate-200">Parsing Workout Program...</h3>
         <p className="text-xs text-slate-500 mt-1">Caching split days from local CSV file.</p>
       </div>
@@ -194,7 +194,7 @@ function MainAppContent() {
         <Suspense
           fallback={
             <div className="flex justify-center py-16">
-              <Spinner variant="brand" className="w-10 h-10 text-violet-500" />
+              <Spinner variant="brand" className="w-10 h-10 text-accent" />
             </div>
           }
         >

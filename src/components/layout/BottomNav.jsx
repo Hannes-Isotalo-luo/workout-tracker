@@ -23,7 +23,7 @@ export default function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800/60 safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-surf-nav border-t border-line-sub safe-area-pb">
       <div className="flex max-w-lg mx-auto relative">
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -34,18 +34,18 @@ export default function BottomNav() {
               id={`tab-${tab.id}`}
               onClick={() => handleTabClick(tab)}
               className={`flex-1 flex flex-col items-center gap-1 py-3 relative transition-all duration-300 ease-out ${
-                isActive ? 'text-violet-400' : 'text-slate-500 active:text-slate-300'
+                isActive ? 'text-accent' : 'text-[#5b6678] active:text-[#8b96a8]'
               }`}
               aria-label={tab.label}
               aria-selected={isActive}
               role="tab"
             >
               <Icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className={`text-[11px] font-semibold tracking-wide ${isActive ? 'text-violet-400' : 'text-slate-500'}`}>
+              <span className={`text-[11px] font-semibold tracking-wide ${isActive ? 'text-accent' : 'text-[#5b6678]'}`}>
                 {tab.label}
               </span>
               {isActive && (
-                <span className="absolute -top-px left-1/2 -translate-x-1/2 w-10 h-[3px] bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full" />
+                <span className="absolute -top-px left-1/2 -translate-x-1/2 w-10 h-[3px] bg-accent rounded-full" />
               )}
             </button>
           );
