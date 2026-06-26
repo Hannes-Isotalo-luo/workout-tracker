@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, Award, AlertCircle } from 'lucide-react';
+import { Award, AlertCircle, Trash2 } from 'lucide-react';
 import { useWorkout } from '../../context/WorkoutContext';
 import { getExercises } from '../../utils/csvParser';
 import { formatTime } from '../../utils/formatters';
@@ -139,8 +139,8 @@ export default function WorkoutView({
         ))}
       </div>
 
-      {/* Bottom actions */}
-      <div className="flex flex-col gap-3 mt-8 px-[18px]">
+      {/* Finish action */}
+      <div className="mt-8 px-[18px]">
         <button
           type="button"
           onClick={onSave}
@@ -150,11 +150,16 @@ export default function WorkoutView({
           <Award className="w-5 h-5" />
           FINISH WORKOUT
         </button>
+      </div>
+
+      {/* Discard — separated visually and requires confirm (in onCancel handler) */}
+      <div className="flex justify-center pb-8 px-[18px]">
         <button
           type="button"
           onClick={onCancel}
-          className="w-full py-2 text-[13px] font-semibold text-[#7a8499] transition-all duration-200 text-center"
+          className="flex items-center gap-1.5 px-5 py-2.5 min-h-[44px] text-[12px] font-bold text-[#5b6678] hover:text-rose-400 border border-line-sub hover:border-rose-900/50 hover:bg-rose-950/10 rounded-[11px] transition-all duration-200"
         >
+          <Trash2 className="w-3.5 h-3.5" />
           Discard session
         </button>
       </div>

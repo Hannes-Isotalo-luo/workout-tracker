@@ -4,7 +4,8 @@ import { WorkoutProvider, useWorkout } from './context/WorkoutContext';
 import { parseRestTime } from './utils/formatters';
 import { computeSessionTotals } from './utils/volumeCalculator';
 import { computePRMap, detectSessionPRs } from './utils/prs';
-import { getPhases, getDays } from './utils/csvParser';
+import { getPhases, getDays, getExercises } from './utils/csvParser';
+import { calculateNextSession } from './utils/nextSession';
 import { useWorkoutDuration } from './hooks/useWorkoutDuration';
 import { useSyncToast } from './hooks/useSyncToast';
 import { useSharedRoutineDeepLink } from './hooks/useSharedRoutineDeepLink';
@@ -19,11 +20,8 @@ import SettingsModal from './components/settings/SettingsModal';
 import Toast from './components/ui/Toast';
 import Spinner from './components/ui/Spinner';
 
-// Heavier, less-frequently-used routes are code-split so the initial workout
-// experience stays lean (Analytics pulls in the recharts vendor chunk).
-const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDashboard'));
 const RoutineBuilder = lazy(() => import('./components/builder/RoutineBuilder'));
-const HistoryView = lazy(() => import('./components/history/HistoryView'));
+const ProgressView = lazy(() => import('./components/progress/ProgressView'));
 
 /** Determines whether the just-saved session completed the final day of a program. */
 function isMesocycleComplete(programData, session) {
@@ -47,6 +45,7 @@ function MainAppContent() {
     restTimer,
     settings,
     workoutHistory,
+    enrolledProgram,
     user,
     authLoading,
     syncStatus,
@@ -66,6 +65,8 @@ function MainAppContent() {
     modifyRestTimer,
     loginWithGoogle,
     saveRoutine,
+    selectProgram,
+    selectPhase,
   } = ctx;
 
   const duration = useWorkoutDuration(activeSession);
@@ -105,6 +106,12 @@ function MainAppContent() {
     completeSet(exerciseId, setNumber);
 
     if (willBeComplete) {
+      // Toast for new PR on this set
+      const w = parseFloat(setObj.weight) || 0;
+      if (w > 0 && ctx.isPR(log.exerciseName, w)) {
+        showToast(`New PR — ${log.exerciseName} ${w} kg`, 'success', 3500);
+      }
+
       startRestTimer(parseRestTime(log.rest), exerciseId);
       try {
         if (!settings?.silenceAll && settings?.hapticsEnabled && navigator.vibrate) navigator.vibrate(50);
@@ -117,7 +124,7 @@ function MainAppContent() {
   };
 
   const handleCancelWorkout = () => {
-    if (window.confirm('Are you sure you want to discard this workout session? All progress will be lost.')) {
+    if (window.confirm('Discard this session? All logged sets will be lost.')) {
       cancelSession();
       stopRestTimer();
     }
@@ -147,6 +154,25 @@ function MainAppContent() {
     setSavedStats(null);
     setLocalNotes('');
   };
+
+  // Save current session then immediately start the next one.
+  const handleStartNext = useCallback((nextSess) => {
+    if (activeSession && savedStats) {
+      setSessionNotes(sessionNotes);
+      saveSession(savedStats.duration);
+    }
+    setShowSummary(false);
+    setSavedStats(null);
+    setLocalNotes('');
+
+    if (nextSess && programData) {
+      const exercises = getExercises(programData, nextSess.program, nextSess.phase, nextSess.day);
+      // All three dispatches are batched by React 18 → one re-render.
+      selectProgram(nextSess.program);
+      selectPhase(nextSess.phase);
+      initSession(nextSess.day, exercises);
+    }
+  }, [activeSession, savedStats, sessionNotes, saveSession, setSessionNotes, programData, selectProgram, selectPhase, initSession]);
 
   const handleEditSets = () => {
     setShowSummary(false);
@@ -188,6 +214,8 @@ function MainAppContent() {
       : '',
   };
 
+  const isProgress = currentView === 'progress' || currentView === 'history' || currentView === 'analytics';
+
   return (
     <>
       <AppShell onOpenSettings={() => setIsSettingsOpen(true)}>
@@ -214,10 +242,8 @@ function MainAppContent() {
             />
           ) : currentView === 'builder' ? (
             <RoutineBuilder />
-          ) : currentView === 'analytics' ? (
-            <AnalyticsDashboard />
-          ) : currentView === 'history' ? (
-            <HistoryView />
+          ) : isProgress ? (
+            <ProgressView />
           ) : (
             <HomeView />
           )}
@@ -233,6 +259,7 @@ function MainAppContent() {
           onNotesChange={setLocalNotes}
           onEditSets={handleEditSets}
           onSave={handleFinalSave}
+          onStartNext={handleStartNext}
         />
       )}
 

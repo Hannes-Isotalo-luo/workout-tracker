@@ -5,7 +5,6 @@ import { getMuscleGroup, VOLUME_LANDMARKS } from '../../utils/muscleGroups';
 import { computeStreak } from '../../utils/streak';
 import { epley1RM } from '../../utils/volumeCalculator';
 import { formatDateShort } from '../../utils/formatters';
-import ActiveWorkoutBanner from '../layout/ActiveWorkoutBanner';
 import StrengthChart from './StrengthChart';
 import VolumeChart from './VolumeChart';
 import MuscleVolumeCard from './MuscleVolumeCard';
@@ -14,7 +13,7 @@ import ExerciseHistoryModal from '../history/ExerciseHistoryModal';
 
 const DEFAULT_EXERCISES = ['Back Squat', 'Barbell Bench Press', 'Deadlift'];
 
-export default function AnalyticsDashboard() {
+export default function AnalyticsDashboard({ minimal = false }) {
   const { workoutHistory, customGoals, updateCustomGoal } = useWorkout();
   const [selectedExercise, setSelectedExercise] = useState('Back Squat');
   const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
@@ -196,35 +195,36 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-      <ActiveWorkoutBanner />
-
-      <div>
-        <h2 className="text-xl font-bold tracking-tight text-[#f8fafc] flex items-center gap-2">
-          <Activity className="w-5 h-5 text-accent" />
-          Strength Analytics
-        </h2>
-        <p className="text-xs text-[#8b96a8] mt-0.5">Real-time metrics, streaks, and strength progression.</p>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-2.5">
-        {statCards.map(({ label, value, badge, icon: Icon, iconWrap, iconColor, badgeColor }) => (
-          <div key={label} className="glass-card p-3 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-[#5b6678] uppercase tracking-wider">{label}</span>
-              <div className={`w-7 h-7 rounded-lg ${iconWrap} flex items-center justify-center`}>
-                <Icon className={`w-4 h-4 ${iconColor}`} />
-              </div>
-            </div>
-            <div>
-              <p className="text-xl font-black text-[#f8fafc] tracking-tight">{value}</p>
-              <p className={`text-[10px] ${badgeColor} font-semibold flex items-center gap-0.5 mt-0.5`}>
-                {label !== 'Streak' && <ArrowUpRight className="w-2.5 h-2.5" />} {badge}
-              </p>
-            </div>
+      {!minimal && (
+        <>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-[#f8fafc] flex items-center gap-2">
+              <Activity className="w-5 h-5 text-accent" />
+              Strength Analytics
+            </h2>
+            <p className="text-xs text-[#8b96a8] mt-0.5">Real-time metrics, streaks, and strength progression.</p>
           </div>
-        ))}
-      </div>
+
+          <div className="grid grid-cols-3 gap-2.5">
+            {statCards.map(({ label, value, badge, icon: Icon, iconWrap, iconColor, badgeColor }) => (
+              <div key={label} className="glass-card p-3 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-[#5b6678] uppercase tracking-wider">{label}</span>
+                  <div className={`w-7 h-7 rounded-lg ${iconWrap} flex items-center justify-center`}>
+                    <Icon className={`w-4 h-4 ${iconColor}`} />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xl font-black text-[#f8fafc] tracking-tight">{value}</p>
+                  <p className={`text-[10px] ${badgeColor} font-semibold flex items-center gap-0.5 mt-0.5`}>
+                    {label !== 'Streak' && <ArrowUpRight className="w-2.5 h-2.5" />} {badge}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Strength progression */}
       <div className="glass-card p-4 space-y-4">

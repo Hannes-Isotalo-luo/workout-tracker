@@ -1,19 +1,29 @@
-import { Sparkles, Award, Trophy } from 'lucide-react';
+import { Sparkles, Award, Trophy, ArrowRight } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { formatTime } from '../../utils/formatters';
+import { useWorkout } from '../../context/WorkoutContext';
+import { calculateNextSession } from '../../utils/nextSession';
 
 /**
- * Post-workout summary modal: celebrates the session, shows totals + any new
- * PRs, and collects optional notes before the final save.
+ * Post-workout summary modal: celebrates the session, shows totals, PRs,
+ * an "Up Next" nudge, and collects optional notes before the final save.
  *
- * @param {object} stats — { day, program, duration, completedSets, totalVolume, isMesocycleComplete, prs[] }
- * @param {string} notes
- * @param {(value: string) => void} onNotesChange
- * @param {() => void} onEditSets — dismiss summary, return to editing sets
- * @param {() => void} onSave — finalize + persist
+ * @param {object}   stats         — { day, program, duration, completedSets, totalVolume, isMesocycleComplete, prs[] }
+ * @param {string}   notes
+ * @param {Function} onNotesChange
+ * @param {Function} onEditSets    — dismiss and return to editing sets
+ * @param {Function} onSave        — finalize + persist current session
+ * @param {Function} onStartNext   — finalize + immediately start the next session
  */
-export default function WorkoutSummary({ stats, notes, onNotesChange, onEditSets, onSave }) {
+export default function WorkoutSummary({ stats, notes, onNotesChange, onEditSets, onSave, onStartNext }) {
+  const { programData, workoutHistory, enrolledProgram, activeSession } = useWorkout();
+
   if (!stats) return null;
+
+  // Compute the session that follows the one currently being saved.
+  const nextSession = programData && activeSession
+    ? calculateNextSession(programData, activeSession, enrolledProgram, workoutHistory)
+    : null;
 
   return (
     <Modal onClose={onEditSets} anchorBottom borderClass="border-accent/30" showClose={false} panelClass="shadow-accent/20">
@@ -39,6 +49,7 @@ export default function WorkoutSummary({ stats, notes, onNotesChange, onEditSets
         </>
       )}
 
+      {/* Session stats */}
       <div className="space-y-3.5 bg-canvas p-4 rounded-[13px] border border-line-sub mb-5">
         <div className="flex items-center justify-between text-sm">
           <span className="text-[#5b6678] font-bold">WORKOUT DAY</span>
@@ -58,6 +69,7 @@ export default function WorkoutSummary({ stats, notes, onNotesChange, onEditSets
         </div>
       </div>
 
+      {/* PRs — celebration lives here, not in the set row */}
       {stats.prs && stats.prs.length > 0 && (
         <div className="mb-5 space-y-2">
           <div className="flex items-center gap-1.5 justify-center text-peak">
@@ -82,6 +94,27 @@ export default function WorkoutSummary({ stats, notes, onNotesChange, onEditSets
         </div>
       )}
 
+      {/* Up Next */}
+      {nextSession && (
+        <div className="mb-4 bg-gain/5 border border-gain/20 rounded-[13px] p-3.5">
+          <p className="text-[10px] font-black text-gain-t uppercase tracking-wider mb-2 flex items-center gap-1">
+            <ArrowRight className="w-3 h-3" /> Up Next
+          </p>
+          <p className="text-sm font-extrabold text-[#d3dae4] mb-0.5">{nextSession.day}</p>
+          <p className="text-[10px] text-[#5b6678] font-bold mb-3">
+            {nextSession.program} · {nextSession.phase}
+          </p>
+          <button
+            type="button"
+            onClick={() => onStartNext && onStartNext(nextSession)}
+            className="w-full py-2.5 px-4 rounded-[11px] font-extrabold text-xs bg-gain/20 hover:bg-gain/30 text-gain-t border border-gain/30 hover:border-gain/50 active:scale-[0.98] transition-all duration-200"
+          >
+            Start Next Session
+          </button>
+        </div>
+      )}
+
+      {/* Notes */}
       <div className="mb-5 space-y-1.5 text-left">
         <label htmlFor="session-notes" className="text-[10px] font-black text-[#5b6678] uppercase tracking-wider block pl-1">
           Workout Notes / Feedback

@@ -3,7 +3,6 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flame, Trophy, Act
 import { useWorkout } from '../../context/WorkoutContext';
 import { computeStreak } from '../../utils/streak';
 import { formatDate } from '../../utils/formatters';
-import ActiveWorkoutBanner from '../layout/ActiveWorkoutBanner';
 import SessionDetail from './SessionDetail';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 
@@ -83,7 +82,6 @@ export default function HistoryView() {
 
   return (
     <div className="space-y-6 animate-fadeIn pb-6">
-      <ActiveWorkoutBanner />
 
       <div className="space-y-1">
         <h2 className="text-xl font-black text-[#f8fafc] flex items-center gap-2">

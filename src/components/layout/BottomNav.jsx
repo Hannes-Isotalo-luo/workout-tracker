@@ -1,25 +1,22 @@
-import { Dumbbell, Plus, BarChart3, Calendar } from 'lucide-react';
+import { Dumbbell, TrendingUp } from 'lucide-react';
 import { useWorkout } from '../../context/WorkoutContext';
 
 const TABS = [
-  { id: 'select', label: 'Workout', icon: Dumbbell, activeMatch: ['select', 'workout'] },
-  { id: 'builder', label: 'Builder', icon: Plus, activeMatch: ['builder'] },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, activeMatch: ['analytics'] },
-  { id: 'history', label: 'History', icon: Calendar, activeMatch: ['history'] },
+  { id: 'select', label: 'Train', icon: Dumbbell, activeMatch: ['select', 'workout', 'builder'] },
+  { id: 'progress', label: 'Progress', icon: TrendingUp, activeMatch: ['progress', 'history', 'analytics'] },
 ];
 
-/** Fixed bottom tab bar. Guards leaving an active workout for other tabs. */
+/** Fixed 2-tab bar. No confirm when leaving an active workout — the banner makes resuming obvious. */
 export default function BottomNav() {
   const { currentView, activeSession, setView } = useWorkout();
 
   const handleTabClick = (tab) => {
-    if ((tab.id === 'history' || tab.id === 'analytics') && currentView === 'workout' && activeSession) {
-      if (!window.confirm(`You have an active workout in progress. Your session will be preserved in the background. Proceed to ${tab.label}?`)) {
-        return;
-      }
+    if (tab.id === 'select') {
+      // Clicking Train while a workout is running resumes it rather than going to Home.
+      setView(activeSession && currentView !== 'workout' ? 'workout' : 'select');
+    } else {
+      setView(tab.id);
     }
-    if (tab.id === 'select' && activeSession) setView('workout');
-    else setView(tab.id);
   };
 
   return (
