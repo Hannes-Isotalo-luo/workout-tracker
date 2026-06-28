@@ -132,6 +132,12 @@ function SetInput({
   );
 }
 
+// Custom comparator intentionally ignores the on*Change/onToggleComplete
+// callbacks: ExerciseCard recreates those closures on every render, but they
+// only ever close over the stable exerciseId + setNumber, so re-rendering this
+// row on each keystroke elsewhere would be pure waste. If a handler ever starts
+// closing over changing state, add it to this comparison or the row will use a
+// stale closure.
 export default React.memo(SetInput, (prevProps, nextProps) => {
   return (
     prevProps.weight === nextProps.weight &&

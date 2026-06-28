@@ -1,5 +1,5 @@
 import { db } from './config';
-import { doc, setDoc, getDoc, getDocs, deleteDoc, collection, query, orderBy } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, deleteDoc, collection } from 'firebase/firestore';
 
 // ─────────────────────────────────────────────────────────────────────
 // workoutService.js — all Firestore CRUD for the app. Components and the
@@ -16,7 +16,8 @@ function sanitizeSession(session) {
     totalVolume: typeof session.totalVolume === 'number' && !isNaN(session.totalVolume) ? session.totalVolume : 0,
     notes: session.notes || '',
     sessionNote: session.sessionNote || '',
-    completedAt: session.completedAt || new Date().toISOString(),
+    date: session.date || session.completedAt || new Date().toISOString(),
+    completedAt: session.completedAt || session.date || new Date().toISOString(),
   };
 }
 
@@ -30,22 +31,15 @@ export async function saveSessionToCloud(userId, session) {
 
 export async function fetchUserHistory(userId) {
   if (!userId) return [];
-  try {
-    const ref = collection(db, 'users', userId, 'sessions');
-    const snap = await getDocs(query(ref, orderBy('completedAt', 'asc')));
-    const history = [];
-    snap.forEach((d) => history.push(sanitizeSession(d.data())));
-    return history;
-  } catch (error) {
-    // Likely a missing composite index — fall back to an unordered read + client sort.
-    console.warn('[workoutService] Ordered history fetch failed; using client-side sort.', error);
-    const ref = collection(db, 'users', userId, 'sessions');
-    const snap = await getDocs(ref);
-    const history = [];
-    snap.forEach((d) => history.push(sanitizeSession(d.data())));
-    history.sort((a, b) => new Date(a.completedAt || a.date || 0) - new Date(b.completedAt || b.date || 0));
-    return history;
-  }
+  // Unordered read + client-side sort on purpose: a Firestore orderBy() silently
+  // drops any document missing the sort field, which would hide sessions. The
+  // per-user collection is small enough that sorting in memory is trivial.
+  const ref = collection(db, 'users', userId, 'sessions');
+  const snap = await getDocs(ref);
+  const history = [];
+  snap.forEach((d) => history.push(sanitizeSession(d.data())));
+  history.sort((a, b) => new Date(a.completedAt || a.date || 0) - new Date(b.completedAt || b.date || 0));
+  return history;
 }
 
 export async function deleteSessionFromCloud(userId, sessionId) {

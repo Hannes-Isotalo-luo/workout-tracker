@@ -233,53 +233,57 @@ WorkoutContext.jsx (Provider)
          └── dispatch →  called by components via useWorkoutSession()
 ```
 
-### 4.1 Active Session State Shape
+### 4.1 Reducer State Shape
 
-This is the **single source of truth** for any in-progress workout. It lives in `WorkoutContext` and is never persisted until the user explicitly saves.
+The reducer owns program data, the active session, saved history, and UI/timer
+state. `initialState` is **pure** (no `localStorage` reads) — hydration happens
+in the provider after auth resolves (see §4.4). `activeSession` is the single
+source of truth for an in-progress workout and is not written to the `sessions`
+collection until the user saves.
 
 ```javascript
-// context/WorkoutContext.jsx → initial state
+// context/workoutReducer.js → initialState (pure)
 const initialState = {
-  // ── Session Metadata ──────────────────────────────────
-  activeSession: null,       // null when no workout is active; object when in progress:
+  // ── Program data ──────────────────────────────────────
+  programData:     null,     // nested CSV map (Program → Phase → Day → Exercise[])
+  routinePrograms: {},       // custom routines adapted to the same shape, merged in the provider
+  isLoading:       true,     // true while the CSV is being fetched/parsed
+  error:           null,     // parse/error string, if any
+
+  // ── Selection State (wizard steps) ────────────────────
+  selectedProgram: null,     // String | null
+  selectedPhase:   null,     // String | null
+
+  // ── Active session ────────────────────────────────────
+  activeSession:   null,     // null when idle; otherwise:
   // {
-  //   id:        String,    // UUID generated at session init (crypto.randomUUID())
-  //   date:      String,    // ISO 8601 timestamp (new Date().toISOString())
-  //   program:   String,    // "Full Body" | "Upper/Lower" | "Body Part Split"
-  //   phase:     String,    // "Weeks 1-4" | "Weeks 5-8"
-  //   day:       String,    // "Full Body #1" | "Lower Body #2" | "Chest & Triceps" etc.
-  //   startedAt: String,    // ISO timestamp of when the user entered the workout view
+  //   id, date, program, phase, day, startedAt,          // metadata
+  //   notes, sessionNote,                                // optional free-text note
   //   logs: [
   //     {
-  //       exerciseId:    String,   // deterministic: "fb_w14_d1_1" (see exerciseIdGenerator.js)
-  //       exerciseName:  String,   // "Back Squat"
-  //       targetSets:    Number,   // from CSV: 3
-  //       targetReps:    String,   // from CSV: "6" or "20SEC" (kept as string for timed exercises)
-  //       rpe:           Number,   // from CSV: 7
-  //       rest:          String,   // from CSV: "3-4MIN"
-  //       notes:         String,   // from CSV: "SIT BACK AND DOWN, 15° TOE FLARE, ..."
+  //       exerciseId, exerciseName, targetSets, targetReps, rpe, rest, notes,
   //       sets: [
   //         {
-  //           setNumber:     Number,   // 1-indexed
-  //           weight:        String,   // "" until user types (kept as string for input binding)
-  //           repsCompleted: String,   // "" until user types
-  //           isComplete:    Boolean   // false → true when user taps the checkmark
+  //           setNumber, weight, repsCompleted, isComplete,  // weight/reps kept as strings
+  //           previousWeight, previousReps,                  // "last time" refs (stripped on save)
+  //           isPR                                           // set at save time (utils/prs)
   //         }
   //       ]
   //     }
   //   ]
   // }
 
-  // ── Selection State (wizard steps) ────────────────────
-  selectedProgram: null,     // String | null
-  selectedPhase:   null,     // String | null
+  // ── History & enrollment ──────────────────────────────
+  workoutHistory:  [],       // saved sessions, hydrated from Firestore on login
+  enrolledProgram: null,     // active program for the "Up Next" quick-start
 
-  // ── UI State ──────────────────────────────────────────
-  currentView:     "select", // "select" | "workout" | "history"
+  // ── UI / timer state ──────────────────────────────────
+  currentView:     "select", // "select" | "workout" | "builder" | "progress"
   restTimer: {
-    isRunning:   false,
-    seconds:     0,
-    exerciseId:  null        // which exercise triggered it
+    isRunning:  false,
+    seconds:    0,
+    exerciseId: null,        // which exercise triggered it
+    endTime:    null         // absolute epoch ms — countdown is derived from this (survives backgrounding)
   }
 };
 ```
@@ -287,132 +291,144 @@ const initialState = {
 ### 4.2 Reducer Actions
 
 ```javascript
-// context/workoutReducer.js
+// context/workoutReducer.js — handled action types
 
-const ACTION_TYPES = {
-  // ── Selection Flow ──
-  SELECT_PROGRAM:    "SELECT_PROGRAM",     // payload: { program: String }
-  SELECT_PHASE:      "SELECT_PHASE",       // payload: { phase: String }
-  CLEAR_SELECTION:   "CLEAR_SELECTION",     // payload: none — resets wizard to step 1
+// ── Program data ──
+"LOAD_PROGRAM_START" | "LOAD_PROGRAM_SUCCESS" | "LOAD_PROGRAM_ERROR"  // CSV lifecycle
+"SET_ROUTINE_PROGRAMS"                                                // custom routines → programData shape
 
-  // ── Session Lifecycle ──
-  INIT_SESSION:      "INIT_SESSION",       // payload: { day: String, exercises: ExerciseLog[] }
-                                            //   Populates activeSession from parsed CSV data
-  CANCEL_SESSION:    "CANCEL_SESSION",     // payload: none — discards activeSession, returns to selector
-  SAVE_SESSION:      "SAVE_SESSION",       // payload: none — marks session as ready-to-persist
-                                            //   (actual Firestore write happens in the hook, not the reducer)
+// ── Selection / enrollment ──
+"SELECT_PROGRAM" | "SELECT_PHASE" | "CLEAR_SELECTION"
+"ENROLL_PROGRAM" | "ABANDON_PROGRAM"
 
-  // ── Set-Level Updates ──
-  UPDATE_SET:        "UPDATE_SET",         // payload: { exerciseId, setNumber, field, value }
-                                            //   field: "weight" | "repsCompleted" | "isComplete"
-  TOGGLE_SET_COMPLETE: "TOGGLE_SET_COMPLETE", // payload: { exerciseId, setNumber }
+// ── Session lifecycle ──
+"INIT_SESSION"        // { day, exercises } — builds activeSession; pulls "last time" weights + auto-progression
+"CANCEL_SESSION"      // discard activeSession
+"SAVE_SESSION"        // { ...completedSession }? — appends to workoutHistory (cloud write done in the provider)
+"UNDO_LAST_SESSION" | "RESTART_LAST_SESSION"
+"SET_SESSION_NOTES"
 
-  // ── Rest Timer ──
-  START_REST_TIMER:  "START_REST_TIMER",   // payload: { seconds: Number, exerciseId: String }
-  TICK_REST_TIMER:   "TICK_REST_TIMER",    // payload: none — decrements by 1
-  STOP_REST_TIMER:   "STOP_REST_TIMER",    // payload: none
+// ── Set-level updates ──
+"UPDATE_SET"          // { exerciseId, setNumber, field, value } — cascades to untouched downstream sets
+"TOGGLE_SET_COMPLETE" // { exerciseId, setNumber }
+"ADD_SET" | "REMOVE_SET" | "SWAP_EXERCISE"
 
-  // ── Navigation ──
-  SET_VIEW:          "SET_VIEW"            // payload: { view: "select" | "workout" | "history" }
-};
+// ── History / hydration ──
+"SET_HISTORY"         // replace workoutHistory (from cloud)
+"SET_ACTIVE_STATE"    // restore selection + activeSession + restTimer (from local cache / cloud)
+"RESET_ON_LOGOUT"     // wipe per-user state
+
+// ── Rest timer (endTime-anchored) ──
+"START_REST_TIMER" | "MODIFY_REST_TIMER" | "TICK_REST_TIMER" | "STOP_REST_TIMER"
+
+// ── Navigation ──
+"SET_VIEW"            // { view: "select" | "workout" | "builder" | "progress" }
 ```
 
 ### 4.3 Custom Hook API
 
+The canonical consumer hook is **`useWorkout()`**, exported from
+`context/WorkoutContext.jsx` (`hooks/useWorkoutSession.js` is a thin alias kept
+for the name in this doc). The provider composes reducer state with auth, cloud
+sync, and derived values, then exposes a single memoized object of **state +
+action creators** (all dispatchers are `useCallback`-stable):
+
 ```javascript
-// hooks/useWorkoutSession.js
-// Convenience wrapper around useContext(WorkoutContext)
-
-function useWorkoutSession() {
-  const { state, dispatch } = useContext(WorkoutContext);
-
-  return {
-    // ── Read ──
-    activeSession:    state.activeSession,
-    selectedProgram:  state.selectedProgram,
-    selectedPhase:    state.selectedPhase,
-    currentView:      state.currentView,
-    restTimer:        state.restTimer,
-
-    // ── Write (dispatch wrappers) ──
-    selectProgram:    (program)                          => dispatch({ type: "SELECT_PROGRAM", payload: { program } }),
-    selectPhase:      (phase)                            => dispatch({ type: "SELECT_PHASE", payload: { phase } }),
-    clearSelection:   ()                                 => dispatch({ type: "CLEAR_SELECTION" }),
-    initSession:      (day, exercises)                   => dispatch({ type: "INIT_SESSION", payload: { day, exercises } }),
-    updateSet:        (exerciseId, setNumber, field, value) => dispatch({ type: "UPDATE_SET", payload: { exerciseId, setNumber, field, value } }),
-    toggleSetComplete:(exerciseId, setNumber)             => dispatch({ type: "TOGGLE_SET_COMPLETE", payload: { exerciseId, setNumber } }),
-    cancelSession:    ()                                 => dispatch({ type: "CANCEL_SESSION" }),
-    saveSession:      ()                                 => dispatch({ type: "SAVE_SESSION" }),
-    setView:          (view)                             => dispatch({ type: "SET_VIEW", payload: { view } }),
-    startRestTimer:   (seconds, exerciseId)              => dispatch({ type: "START_REST_TIMER", payload: { seconds, exerciseId } }),
-    tickRestTimer:    ()                                 => dispatch({ type: "TICK_REST_TIMER" }),
-    stopRestTimer:    ()                                 => dispatch({ type: "STOP_REST_TIMER" }),
-  };
-}
+const {
+  // state
+  programData, isLoading, error, selectedProgram, selectedPhase,
+  activeSession, currentView, restTimer, workoutHistory, enrolledProgram,
+  lastCompletedSession, user, authLoading, syncStatus, prs, customGoals,
+  customRoutines, settings,
+  // session actions
+  selectProgram, selectPhase, clearSelection, initSession,
+  updateSetWeight, updateSetReps, completeSet, addSet, removeSet, swapExercise,
+  cancelSession, saveSession, setSessionNotes, undoLastSession, restartLastSession,
+  // navigation / timer / program
+  setView, startRestTimer, stopRestTimer, modifyRestTimer, abandonProgram,
+  // auth / routines / goals
+  loginWithGoogle, logout, isPR, updateCustomGoal,
+  reloadRoutines, saveRoutine, deleteRoutine, shareRoutine,
+} = useWorkout();
 ```
+
+### 4.4 Persistence & Hydration
+
+- **Firestore is the source of truth** ("cloud wins" on every login). On
+  `onAuthStateChanged`, the provider hydrates history, goals, settings, enrolled
+  program, custom routines, and active state, then dispatches `SET_HISTORY` /
+  `SET_ACTIVE_STATE`.
+- **Offline** is handled by Firestore's `persistentLocalCache` (see
+  `firebase/config.js`) — history is *not* mirrored to `localStorage`.
+- **Instant resume** uses a **UID-scoped** `localStorage` active-session cache
+  (`utils/localCache.js`), written on a 1.5 s debounce; the cloud copy of the
+  active state is written on a throttle (≤ 1 write / 10 s). Logout clears the
+  cache; legacy global keys are purged on startup.
 
 ---
 
 ## 5. Database Schema (Firebase Firestore)
 
-### Development Phase Rules
+### Security Rules (production)
+
+Rules are **locked down** (see `firestore.rules`): per-user data under
+`users/{uid}/**` is readable/writable only by that authenticated UID;
+`shared_routines` is world-readable with a signed-in-only, shape/size-validated
+`create` (immutable — no update/delete).
 
 ```javascript
-// firestore.rules
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true; // TODO: Lock down to specific UID before production
-    }
+// firestore.rules (summary)
+match /users/{userId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+  match /{allChildren=**} {
+    allow read, write: if request.auth != null && request.auth.uid == userId;
   }
+}
+match /shared_routines/{shareId} {
+  allow read: if true;
+  allow create: if request.auth != null
+    && request.resource.data.name is string
+    && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120
+    && request.resource.data.phases is list && request.resource.data.phases.size() <= 50;
 }
 ```
 
 ### Collection Map
 
+All persistence is **per-user** under `users/{uid}` (managed in
+`firebase/workoutService.js`). There is no top-level `workoutLogs` collection.
+
 ```
 Firestore Root
 │
-└── workoutLogs/                         ← Top-level collection
-    └── {logId}/                         ← Auto-generated document ID (or UUID from client)
-        ├── id:           String         ← Same UUID used as the doc ID
-        ├── date:         Timestamp      ← Firestore Timestamp of when session was saved
-        ├── program:      String         ← "Full Body" | "Upper/Lower" | "Body Part Split"
-        ├── phase:        String         ← "Weeks 1-4" | "Weeks 5-8"
-        ├── day:          String         ← "Full Body #1" | "Lower Body #2" | etc.
-        ├── startedAt:    Timestamp      ← When the user entered the workout view
-        ├── completedAt:  Timestamp      ← When the user pressed "Save Workout"
-        ├── totalVolume:  Number         ← Σ(weight × reps) across all completed sets
-        ├── totalSets:    Number         ← Count of sets where isComplete === true
-        └── exercises:    Array          ← Ordered array of exercise log objects
-            └── [index]
-                ├── exerciseId:    String     ← "fb_w14_d1_1"
-                ├── exerciseName:  String     ← "Back Squat"
-                ├── targetSets:    Number     ← 3
-                ├── targetReps:    String     ← "6"
-                ├── rpe:           Number     ← 7
-                └── sets:          Array      ← Ordered array of set objects
-                    └── [index]
-                        ├── setNumber:     Number     ← 1
-                        ├── weight:        Number     ← 135  (converted from String on save)
-                        ├── repsCompleted: Number     ← 6    (converted from String on save)
-                        └── isComplete:    Boolean    ← true
+└── users/{uid}/
+    ├── sessions/{sessionId}             ← one doc per completed workout (client UUID = doc id)
+    │   ├── id, date, program, phase, day, startedAt, completedAt
+    │   ├── duration, completedSets, totalVolume   ← numbers (backfilled by sanitizeSession)
+    │   ├── notes, sessionNote, schemaVersion
+    │   └── logs: Array                  ← NOTE: field is "logs" (not "exercises")
+    │       └── [i]: { exerciseId, exerciseName, targetSets, targetReps, rpe, rest, notes,
+    │                  sets: [ { setNumber, weight, repsCompleted, isComplete, isPR? } ] }
+    │
+    ├── config/{key}                     ← single-doc settings:
+    │   ├── goals            ← { [exerciseName]: targetWeight }
+    │   ├── settings         ← { soundEnabled, hapticsEnabled, silenceAll }
+    │   ├── activeState      ← in-progress session snapshot (throttled autosave)
+    │   └── enrolledProgram  ← { programName }
+    │
+    └── routines/{routineId}             ← user's custom routines (RoutineBuilder)
+
+shared_routines/{shareId}                ← public, world-readable shared routines
 ```
 
-### Indexing Strategy
+### Query Strategy
 
-The following **composite indexes** should be configured for efficient querying:
-
-| Query Purpose                        | Fields (ascending unless noted)           |
-| ------------------------------------ | ----------------------------------------- |
-| History list (date-sorted)           | `program` ASC, `date` DESC                |
-| Per-exercise progress chart          | `exercises.exerciseName` (array-contains query not ideal — see note below) |
-
-> **Note on per-exercise queries:** Firestore does not support `array-contains` on nested object fields. For the progress chart, the recommended approach during development is:
-> 1. Query all `workoutLogs` for a given `program` (optionally filtered by `day`), ordered by `date` DESC.
-> 2. Client-side filter: extract the matching exercise from each document's `exercises[]` array.
-> 3. If performance becomes an issue at scale, denormalize into a subcollection: `workoutLogs/{logId}/exerciseSets/{exerciseId}`.
+History is read with an **unordered** `getDocs` on `users/{uid}/sessions` and
+sorted client-side by `completedAt || date` (`fetchUserHistory`). This is
+deliberate: a Firestore `orderBy()` silently drops any document missing the sort
+field, and the per-user collection is small enough that an in-memory sort is
+trivial — so no composite indexes are required. Per-exercise progress is derived
+client-side by scanning each session's `logs[]`.
 
 ### Example Firestore Document
 
@@ -426,8 +442,8 @@ The following **composite indexes** should be configured for efficient querying:
   "startedAt": "2026-05-31T15:30:00.000Z",
   "completedAt": "2026-05-31T16:45:00.000Z",
   "totalVolume": 12450,
-  "totalSets": 21,
-  "exercises": [
+  "completedSets": 21,
+  "logs": [
     {
       "exerciseId": "fb_w14_d1_1",
       "exerciseName": "Back Squat",
@@ -461,6 +477,17 @@ The following **composite indexes** should be configured for efficient querying:
 ## 6. Data Initialization Flow
 
 This section describes exactly how the local CSV files become an active workout session in the app.
+
+> **Corrections to the diagram below (authoritative):**
+> - **Step 1 (CSV location):** the CSVs are **served as static assets from
+>   `public/data/`** (`program.csv`, `keyTerms.csv`) and **fetched at runtime**
+>   — `parseProgramCSV()` calls `fetch('/data/program.csv')` (see
+>   `utils/csvParser.js`). They are *not* imported from `src/assets` via
+>   `?url`/`?raw`.
+> - **Step 6 (save target):** saving writes to **`users/{uid}/sessions/{id}`** via
+>   `setDoc` (`workoutService.saveSessionToCloud`), not `addDoc(collection(db,
+>   "workoutLogs"))`. Volume/PR/totals are computed in the provider's
+>   `saveSession`, and weights/reps are kept as strings in the stored `logs[]`.
 
 ### 6.1 Source CSV Structure
 

@@ -43,6 +43,34 @@ export function sessionMaxWeight(log) {
 }
 
 /**
+ * Returns a copy of the session with `set.isPR === true` on every completed
+ * set that establishes a new heaviest weight for its exercise, advancing the
+ * running record as it goes. This is the single place that decides what a "PR
+ * set" is, so the save flow and analytics never drift apart.
+ * @param {Object} session — the session being saved (has `logs[]`)
+ * @param {Object<string, number>} prevMap — exerciseName → prior max (pre-session)
+ * @returns {Object} a new session object with annotated sets
+ */
+export function annotateSessionPRs(session, prevMap) {
+  const running = { ...(prevMap || {}) };
+  const logs = (session?.logs || []).map((log) => ({
+    ...log,
+    sets: (log.sets || []).map((set) => {
+      const next = { ...set };
+      if (next.isComplete) {
+        const w = parseFloat(next.weight) || 0;
+        if (w > 0 && w > (running[log.exerciseName] || 0)) {
+          next.isPR = true;
+          running[log.exerciseName] = w;
+        }
+      }
+      return next;
+    }),
+  }));
+  return { ...session, logs };
+}
+
+/**
  * Compares a session against a prior PR map and returns the records it beats.
  * @param {Object} session — the session being evaluated
  * @param {Object<string, number>} prevMap — exerciseName → prior max

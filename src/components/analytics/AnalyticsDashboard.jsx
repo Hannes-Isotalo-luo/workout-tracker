@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dumbbell, TrendingUp, Flame, Calendar, Award, Activity, ArrowUpRight } from 'lucide-react';
 import { useWorkout } from '../../context/WorkoutContext';
 import { getMuscleGroup, VOLUME_LANDMARKS } from '../../utils/muscleGroups';
-import { computeStreak } from '../../utils/streak';
+import { computeWeekStreak } from '../../utils/streak';
 import { epley1RM } from '../../utils/volumeCalculator';
 import { formatDateShort } from '../../utils/formatters';
 import StrengthChart from './StrengthChart';
@@ -111,8 +111,8 @@ export default function AnalyticsDashboard({ minimal = false }) {
       : liveTotalVolume.toLocaleString()
     : '0';
 
-  const streak = computeStreak(workoutHistory);
-  const displayStreakStr = hasHistory ? `${streak} Days` : '0 Days';
+  const streak = computeWeekStreak(workoutHistory);
+  const displayStreakStr = hasHistory ? `${streak} ${streak === 1 ? 'Wk' : 'Wks'}` : '0 Wks';
 
   const displaySessions = hasHistory
     ? [...workoutHistory]

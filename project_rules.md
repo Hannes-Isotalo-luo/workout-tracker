@@ -7,16 +7,29 @@
 * **Design Paradigm:** Mobile-first strictly. We are building a gym-friendly web app. Ignore desktop responsive breakpoints entirely unless explicitly requested.
 
 ## 2. Styling Strictness: Dark Mode Default
-* The app must be exclusively dark mode. 
-* Root styling must use `bg-slate-900` and `text-slate-100`.
-* Do not use inline styles. All styling must be handled via standard Tailwind utility classes.
-* Form inputs (weight, reps) must use native number pads on mobile: `type="number"` and `inputmode="decimal"`.
+* The app is exclusively dark mode.
+* **Use the semantic design tokens, not raw `slate-*`.** The colour system lives in
+  `tailwind.config.js` — `canvas`/`surf`/`surf-*` (backgrounds), `line-*` (borders),
+  and the three-colour semantic schema `accent` (violet, primary), `gain` (green,
+  progress/PRs), `peak` (amber, intensity/streaks). Body text is `#f8fafc`/`#d3dae4`,
+  muted text `#8b96a8`/`#5b6678`. Do **not** reintroduce `bg-slate-900`/`text-slate-100`.
+* Prefer Tailwind utility classes; a few `style={{ letterSpacing }}` tweaks aside,
+  avoid inline styles.
+* Numeric inputs must use native mobile pads: `inputmode="decimal"` for weight,
+  `inputmode="numeric"` for reps. (Weight is a `type="text"` field on purpose so it
+  can normalise comma decimals — see `SetInput.jsx`.)
 
-## 3. Firebase & Data Rules (Development Phase)
-* **Current State:** The database is in Development/Testing mode. 
-* **Security Rules:** Keep Firestore rules completely open for local testing right now. Use:
-  `allow read, write: if true; // TODO: Lock down to specific UID before production`
-* **Mock Data First:** Do not attempt to wire up Firebase read/write logic until the UI is 100% built and approved using static JSON mock data.
+## 3. Firebase & Data Rules (Production Posture)
+* **Current State:** Firebase Auth (Google) + Firestore are fully wired and in use.
+  The app is gated behind sign-in (`AuthGate`).
+* **Security Rules:** Rules are locked down — do **not** reopen them. Per-user data
+  lives under `users/{uid}/**` and is readable/writable only by that UID;
+  `shared_routines` is world-readable with a validated, signed-in-only `create`.
+  See `firestore.rules`.
+* **Source of truth:** Firestore is authoritative ("cloud wins" on every login).
+  Offline support comes from Firestore's `persistentLocalCache`. `localStorage` is
+  used only as a **UID-scoped** instant-resume cache for the active session
+  (`utils/localCache.js`) — never store another user's data in a global key.
 
 ## 4. State Management Blueprint
 When building the active workout tracker, use a heavily structured state object to ensure no data is lost before the user hits "Save".

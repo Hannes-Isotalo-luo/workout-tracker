@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flame, Trophy, Activity } from 'lucide-react';
 import { useWorkout } from '../../context/WorkoutContext';
-import { computeStreak } from '../../utils/streak';
+import { computeWeekStreak } from '../../utils/streak';
 import { formatDate } from '../../utils/formatters';
 import SessionDetail from './SessionDetail';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
@@ -78,7 +78,7 @@ export default function HistoryView() {
     }
   };
 
-  const streak = computeStreak(workoutHistory);
+  const streak = computeWeekStreak(workoutHistory);
 
   return (
     <div className="space-y-6 animate-fadeIn pb-6">
@@ -111,7 +111,7 @@ export default function HistoryView() {
         <div className="glass-card p-3 text-center flex flex-col items-center justify-between">
           <Flame className={`w-4 h-4 mb-1 ${streak > 0 ? 'text-peak' : 'text-[#3a4558]'}`} />
           <span className="text-[10px] font-bold text-[#5b6678] uppercase tracking-wide block">Active Streak</span>
-          <span className="text-sm font-black text-[#f8fafc] mt-0.5">{streak} Days</span>
+          <span className="text-sm font-black text-[#f8fafc] mt-0.5">{streak} {streak === 1 ? 'Wk' : 'Wks'}</span>
           <span className="text-[10px] text-[#5b6678] mt-0.5 font-bold">Consistency</span>
         </div>
       </div>

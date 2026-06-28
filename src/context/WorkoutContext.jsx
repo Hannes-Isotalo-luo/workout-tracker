@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useState, useMemo, useCallback } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { initialState, workoutReducer } from './workoutReducer';
 import { auth, googleProvider } from '../firebase/config';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -22,9 +22,10 @@ import {
 import { useProgramData } from '../hooks/useProgramData';
 import { useRestTimer } from '../hooks/useRestTimer';
 import { useWakeLock } from '../hooks/useWakeLock';
-import { computePRMap, detectSessionPRs } from '../utils/prs';
+import { computePRMap, annotateSessionPRs } from '../utils/prs';
 import { computeSessionTotals } from '../utils/volumeCalculator';
 import { routinesToProgramData } from '../utils/routineAdapter';
+import { loadActiveState, saveActiveState, clearActiveState, purgeLegacyGlobalKeys } from '../utils/localCache';
 
 const DEFAULT_GOALS = { 'Back Squat': 100, 'Barbell Bench Press': 80, Deadlift: 140 };
 const DEFAULT_SETTINGS = { soundEnabled: true, hapticsEnabled: true, silenceAll: false };
@@ -56,6 +57,10 @@ export function WorkoutProvider({ children }) {
     let isMounted = true;
     let unsubscribe = () => {};
 
+    // Remove the old global (unscoped) localStorage keys that leaked data
+    // across accounts on shared devices.
+    purgeLegacyGlobalKeys();
+
     const initAuth = async () => {
       try {
         const redirectResult = await getRedirectResult(auth);
@@ -74,6 +79,12 @@ export function WorkoutProvider({ children }) {
 
         if (currentUser) {
           setSyncStatus('syncing');
+
+          // Instant resume from the UID-scoped local cache while the cloud
+          // round-trip is in flight; the cloud value overlays it below.
+          const localActive = loadActiveState(currentUser.uid);
+          if (localActive && isMounted) dispatch({ type: 'SET_ACTIVE_STATE', payload: localActive });
+
           try {
             const [cloudHistory, cloudGoals, cloudSettings, cloudActiveState, cloudEnrolledProgram, cloudRoutines] =
               await Promise.all([
@@ -145,7 +156,9 @@ export function WorkoutProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
+      const uid = auth.currentUser?.uid;
       await signOut(auth);
+      clearActiveState(uid);
       setLastCompletedSession(null);
       setPrs({});
       setCustomGoals(DEFAULT_GOALS);
@@ -172,9 +185,11 @@ export function WorkoutProvider({ children }) {
     );
   }, [settings, user, isSettingsHydrated]);
 
-  // ── Debounced persistence of active workout state (local + cloud) ──
+  // ── Fast, UID-scoped local cache of the active session (instant resume) ──
+  // Debounced so we don't write on every keystroke. History is NOT mirrored
+  // locally — Firestore's persistentLocalCache already serves it offline.
   useEffect(() => {
-    if (state.isLoading) return;
+    if (state.isLoading || !user) return;
     const activeState = {
       selectedProgram: state.selectedProgram,
       selectedPhase: state.selectedPhase,
@@ -182,19 +197,36 @@ export function WorkoutProvider({ children }) {
       currentView: state.currentView,
       restTimer: state.restTimer,
     };
-    const handler = setTimeout(() => {
-      try {
-        localStorage.setItem('workoutTracker_activeState', JSON.stringify(activeState));
-      } catch (e) {
-        console.warn('Failed to save active state locally', e);
-      }
-      if (user) {
-        saveActiveStateToCloud(user.uid, activeState).catch((err) =>
-          console.error('[WorkoutProvider] Failed to sync active state:', err)
-        );
-      }
-    }, 1500);
+    const handler = setTimeout(() => saveActiveState(user.uid, activeState), 1500);
     return () => clearTimeout(handler);
+  }, [state.selectedProgram, state.selectedPhase, state.activeSession, state.currentView, state.restTimer, state.isLoading, user]);
+
+  // ── Throttled cloud sync of active state (≤ 1 write / 10s, trailing) ──
+  // Keeps Firestore write volume sane during a long session while still
+  // converging on the latest state.
+  const lastCloudSyncRef = useRef(0);
+  const cloudSyncTimerRef = useRef(null);
+  useEffect(() => {
+    if (state.isLoading || !user) return;
+    const activeState = {
+      selectedProgram: state.selectedProgram,
+      selectedPhase: state.selectedPhase,
+      activeSession: state.activeSession,
+      currentView: state.currentView,
+      restTimer: state.restTimer,
+    };
+    const CLOUD_MIN_INTERVAL = 10000;
+    const flush = () => {
+      lastCloudSyncRef.current = Date.now();
+      saveActiveStateToCloud(user.uid, activeState).catch((err) =>
+        console.error('[WorkoutProvider] Failed to sync active state:', err)
+      );
+    };
+    clearTimeout(cloudSyncTimerRef.current);
+    const elapsed = Date.now() - lastCloudSyncRef.current;
+    if (elapsed >= CLOUD_MIN_INTERVAL) flush();
+    else cloudSyncTimerRef.current = setTimeout(flush, CLOUD_MIN_INTERVAL - elapsed);
+    return () => clearTimeout(cloudSyncTimerRef.current);
   }, [state.selectedProgram, state.selectedPhase, state.activeSession, state.currentView, state.restTimer, state.isLoading, user]);
 
   // ── Keep the PR map in sync with history (single source: utils/prs) ──
@@ -202,17 +234,6 @@ export function WorkoutProvider({ children }) {
     if (state.isLoading) return;
     const computed = computePRMap(state.workoutHistory);
     setPrs((prev) => (JSON.stringify(prev) === JSON.stringify(computed) ? prev : computed));
-  }, [state.workoutHistory, state.isLoading]);
-
-  // ── Mirror history to localStorage for offline/unauthenticated fallback ──
-  useEffect(() => {
-    if (!state.isLoading && state.workoutHistory?.length > 0) {
-      try {
-        localStorage.setItem('workoutTracker_history', JSON.stringify(state.workoutHistory));
-      } catch (e) {
-        console.warn('Failed to save history locally', e);
-      }
-    }
   }, [state.workoutHistory, state.isLoading]);
 
   // ── Dispatcher helpers ──────────────────────────────────────────────
@@ -258,21 +279,12 @@ export function WorkoutProvider({ children }) {
 
       const { completedSets, totalVolume } = computeSessionTotals(state.activeSession);
 
-      // Flag PR sets against the pre-session record map (single source: utils/prs).
-      const prevMap = { ...prs };
-      const cleanLogs = state.activeSession.logs.map((log) => ({
+      // Flag PR sets against the pre-session record map (single source: utils/prs),
+      // then strip the transient "last time" fields before persisting.
+      const annotated = annotateSessionPRs(state.activeSession, prs);
+      const cleanLogs = annotated.logs.map((log) => ({
         ...log,
-        sets: log.sets.map((set) => {
-          const { previousWeight, previousReps, ...cleanSet } = set;
-          if (cleanSet.isComplete) {
-            const w = parseFloat(cleanSet.weight) || 0;
-            if (w > 0 && w > (prevMap[log.exerciseName] || 0)) {
-              cleanSet.isPR = true;
-              prevMap[log.exerciseName] = w;
-            }
-          }
-          return cleanSet;
-        }),
+        sets: log.sets.map(({ previousWeight, previousReps, ...cleanSet }) => cleanSet),
       }));
 
       const completedSession = {

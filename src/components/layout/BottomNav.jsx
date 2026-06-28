@@ -3,7 +3,7 @@ import { useWorkout } from '../../context/WorkoutContext';
 
 const TABS = [
   { id: 'select', label: 'Train', icon: Dumbbell, activeMatch: ['select', 'workout', 'builder'] },
-  { id: 'progress', label: 'Progress', icon: TrendingUp, activeMatch: ['progress', 'history', 'analytics'] },
+  { id: 'progress', label: 'Progress', icon: TrendingUp, activeMatch: ['progress'] },
 ];
 
 /** Fixed 2-tab bar. No confirm when leaving an active workout — the banner makes resuming obvious. */

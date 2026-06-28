@@ -5,7 +5,6 @@ import { parseRestTime } from './utils/formatters';
 import { computeSessionTotals } from './utils/volumeCalculator';
 import { computePRMap, detectSessionPRs } from './utils/prs';
 import { getPhases, getDays, getExercises } from './utils/csvParser';
-import { calculateNextSession } from './utils/nextSession';
 import { useWorkoutDuration } from './hooks/useWorkoutDuration';
 import { useSyncToast } from './hooks/useSyncToast';
 import { useSharedRoutineDeepLink } from './hooks/useSharedRoutineDeepLink';
@@ -45,7 +44,6 @@ function MainAppContent() {
     restTimer,
     settings,
     workoutHistory,
-    enrolledProgram,
     user,
     authLoading,
     syncStatus,
@@ -214,7 +212,7 @@ function MainAppContent() {
       : '',
   };
 
-  const isProgress = currentView === 'progress' || currentView === 'history' || currentView === 'analytics';
+  const isProgress = currentView === 'progress';
 
   return (
     <>

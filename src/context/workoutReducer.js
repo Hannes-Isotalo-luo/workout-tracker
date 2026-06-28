@@ -1,29 +1,21 @@
 import { generateExerciseId } from '../utils/exerciseIdGenerator.js';
 
-let localHistory = [];
-let localActiveState = null;
-try {
-  if (typeof window !== 'undefined') {
-    localHistory = JSON.parse(localStorage.getItem('workoutTracker_history') || '[]');
-    localActiveState = JSON.parse(localStorage.getItem('workoutTracker_activeState'));
-  }
-} catch (e) {
-  console.warn("Failed to load local history/state:", e);
-}
-
-// Default Initial State
+// Pure initial state. Persistence is intentionally kept out of this module:
+// the provider hydrates from the UID-scoped local cache and the cloud after
+// auth resolves (see WorkoutContext). This keeps the reducer pure/testable and
+// prevents one account's cached data from seeding another account's session.
 const defaultState = {
   programData: null,         // Parsed nested program CSV data (Program -> Phase -> Day -> Exercise[])
   routinePrograms: {},       // User custom routines, adapted to programData shape and merged in
   isLoading: true,           // Loading state for CSV parsing
   error: null,               // Error string if parsing fails
-  selectedProgram: localActiveState ? localActiveState.selectedProgram : null,
-  selectedPhase: localActiveState ? localActiveState.selectedPhase : null,
-  activeSession: localActiveState ? localActiveState.activeSession : null,
-  currentView: localActiveState ? localActiveState.currentView : "select",
-  workoutHistory: localHistory, // Persistent array of completed workout history
+  selectedProgram: null,
+  selectedPhase: null,
+  activeSession: null,
+  currentView: "select",
+  workoutHistory: [],        // Completed workout history (hydrated from cloud on login)
   enrolledProgram: null,     // Currently enrolled program (e.g., "Full Body")
-  restTimer: localActiveState ? localActiveState.restTimer : {
+  restTimer: {
     isRunning: false,
     seconds: 0,
     exerciseId: null
@@ -523,12 +515,12 @@ export function workoutReducer(state, action) {
         workoutHistory: action.payload
       };
 
-    case "SET_ACTIVE_STATE":
+    case "SET_ACTIVE_STATE": {
       console.log("[workoutReducer] 🔄 SET_ACTIVE_STATE triggered. Payload:", action.payload);
       if (!action.payload) return state;
-      
+
       let restTimer = action.payload.restTimer !== undefined ? action.payload.restTimer : { isRunning: false, seconds: 0, exerciseId: null };
-      
+
       // Resume or stop timer based on end time comparison
       if (restTimer.isRunning && restTimer.endTime) {
         const now = Date.now();
@@ -538,7 +530,7 @@ export function workoutReducer(state, action) {
           restTimer.seconds = Math.max(0, Math.round((restTimer.endTime - now) / 1000));
         }
       }
-      
+
       return {
         ...state,
         selectedProgram: action.payload.selectedProgram !== undefined ? action.payload.selectedProgram : null,
@@ -547,6 +539,7 @@ export function workoutReducer(state, action) {
         currentView: action.payload.currentView !== undefined ? action.payload.currentView : "select",
         restTimer
       };
+    }
 
     case "SET_VIEW":
       console.log(`[workoutReducer] 🧭 Navigating to View: "${action.payload.view}"`);

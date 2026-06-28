@@ -10,10 +10,17 @@ service cloud.firestore {
     }
 
     // Publicly shareable routines: anyone can read a shared routine by its id,
-    // any signed-in user can publish one. No updates/deletes (shares are immutable).
+    // any signed-in user can publish one. No updates/deletes (shares are
+    // immutable). Writes are shape/size-validated to bound abuse of this
+    // world-readable, openly-creatable collection.
     match /shared_routines/{shareId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.phases is list
+        && request.resource.data.phases.size() <= 50;
     }
   }
 }
