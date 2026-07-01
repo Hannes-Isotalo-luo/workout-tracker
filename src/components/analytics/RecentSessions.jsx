@@ -1,7 +1,8 @@
-import { Calendar, Clock, Dumbbell, ChevronRight } from 'lucide-react';
+import { memo } from 'react';
+import { Calendar, Clock, Dumbbell } from 'lucide-react';
 
 /** Scrollable list of the most recent saved sessions. */
-export default function RecentSessions({ sessions }) {
+function RecentSessions({ sessions }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -9,9 +10,6 @@ export default function RecentSessions({ sessions }) {
           <Calendar className="w-4 h-4 text-accent" />
           Recent Sessions
         </h3>
-        <span className="text-[10px] font-extrabold text-accent bg-accent/10 px-2 py-0.5 rounded-md border border-accent/20">
-          See All
-        </span>
       </div>
 
       <div className="max-h-[290px] overflow-y-auto pr-1 space-y-2.5">
@@ -43,12 +41,6 @@ export default function RecentSessions({ sessions }) {
                   </div>
                 </div>
               </div>
-              <button
-                className="w-11 h-11 rounded-[11px] bg-surf-chip border border-line-c flex items-center justify-center hover:bg-surf-hi hover:text-[#f8fafc] transition-all text-[#5b6678]"
-                aria-label="View session details"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
             </div>
           ))
         ) : (
@@ -64,3 +56,5 @@ export default function RecentSessions({ sessions }) {
     </div>
   );
 }
+
+export default memo(RecentSessions);

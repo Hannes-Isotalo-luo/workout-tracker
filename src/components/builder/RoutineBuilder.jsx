@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, Share2, ArrowLeft, Loader2, Sparkles, Play } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useWorkout } from '../../context/WorkoutContext';
+import RoutineEditor from './RoutineEditor';
+import RoutineList from './RoutineList';
 
 const newId = () => crypto.randomUUID();
 
@@ -24,8 +26,6 @@ export default function RoutineBuilder() {
       active = false;
     };
   }, [user, reloadRoutines]);
-
-  const routines = customRoutines;
 
   const handleCreateNew = () => {
     setEditingRoutine({
@@ -70,43 +70,6 @@ export default function RoutineBuilder() {
     setView('select');
   };
 
-  const routineHasExercises = (routine) =>
-    (routine.phases || []).some((p) => (p.days || []).some((d) => (d.exercises || []).length > 0));
-
-  const addPhase = () =>
-    setEditingRoutine((prev) => ({
-      ...prev,
-      phases: [...prev.phases, { id: newId(), name: `Phase ${prev.phases.length + 1}`, days: [] }],
-    }));
-
-  const addDay = (pIdx) =>
-    setEditingRoutine((prev) => {
-      const phases = [...prev.phases];
-      phases[pIdx].days.push({ id: newId(), name: `Day ${phases[pIdx].days.length + 1}`, exercises: [] });
-      return { ...prev, phases };
-    });
-
-  const addExercise = (pIdx, dIdx) =>
-    setEditingRoutine((prev) => {
-      const phases = [...prev.phases];
-      phases[pIdx].days[dIdx].exercises.push({ id: newId(), name: 'New Exercise', targetSets: 3, targetReps: 10, rest: '2-3 MIN', rpe: 8, notes: '' });
-      return { ...prev, phases };
-    });
-
-  const updateExercise = (pIdx, dIdx, eIdx, field, value) =>
-    setEditingRoutine((prev) => {
-      const phases = [...prev.phases];
-      phases[pIdx].days[dIdx].exercises[eIdx][field] = value;
-      return { ...prev, phases };
-    });
-
-  const removeExercise = (pIdx, dIdx, eIdx) =>
-    setEditingRoutine((prev) => {
-      const phases = [...prev.phases];
-      phases[pIdx].days[dIdx].exercises.splice(eIdx, 1);
-      return { ...prev, phases };
-    });
-
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center bg-canvas min-h-[50vh]">
@@ -126,212 +89,25 @@ export default function RoutineBuilder() {
 
   if (editingRoutine) {
     return (
-      <div className="space-y-6 bg-canvas text-[#f8fafc] min-h-screen pb-24 p-4">
-        <div className="flex items-center justify-between mb-4 mt-2">
-          <button
-            onClick={() => setEditingRoutine(null)}
-            className="p-2 rounded-full bg-surf-chip border border-line-c text-[#8b96a8]"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 py-2 px-4 rounded-[11px] font-extrabold bg-accent hover:bg-accent/90 text-white disabled:opacity-50 text-sm border border-accent/30"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save
-          </button>
-        </div>
-
-        <div className="bg-surf border border-line-c rounded-[18px] p-4">
-          <label className="text-xs font-bold text-[#5b6678] uppercase tracking-wide">Routine Name</label>
-          <input
-            type="text"
-            value={editingRoutine.name}
-            onChange={(e) => setEditingRoutine({ ...editingRoutine, name: e.target.value })}
-            className="w-full bg-canvas border border-line-in rounded-[11px] p-3 text-lg font-bold text-[#f8fafc] mt-1 focus:border-accent outline-none transition-colors"
-          />
-        </div>
-
-        {editingRoutine.phases.map((phase, pIdx) => (
-          <div key={phase.id} className="bg-surf border border-line-c rounded-[18px] p-4 space-y-4">
-            <input
-              type="text"
-              value={phase.name}
-              onChange={(e) => {
-                const phases = [...editingRoutine.phases];
-                phases[pIdx].name = e.target.value;
-                setEditingRoutine({ ...editingRoutine, phases });
-              }}
-              className="bg-transparent border-b border-accent text-accent font-black text-xl outline-none w-full"
-            />
-
-            {phase.days.map((day, dIdx) => (
-              <div key={day.id} className="p-3 bg-canvas rounded-[13px] border border-line-sub space-y-3">
-                <input
-                  type="text"
-                  value={day.name}
-                  onChange={(e) => {
-                    const phases = [...editingRoutine.phases];
-                    phases[pIdx].days[dIdx].name = e.target.value;
-                    setEditingRoutine({ ...editingRoutine, phases });
-                  }}
-                  className="bg-transparent text-[#d3dae4] font-bold text-lg outline-none w-full border-b border-line-c pb-1"
-                />
-
-                {day.exercises.map((ex, eIdx) => (
-                  <div key={ex.id} className="flex flex-col gap-2 p-3 bg-surf rounded-[13px] border-l-[3px] border-l-gain border border-line-ok relative">
-                    <button
-                      onClick={() => removeExercise(pIdx, dIdx, eIdx)}
-                      className="absolute top-2 right-2 text-rose-400 hover:text-rose-300 bg-canvas p-1 rounded-md"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gain-t text-xs font-extrabold font-mono">
-                        {(eIdx + 1).toString().padStart(2, '0')}
-                      </span>
-                      <input
-                        type="text"
-                        value={ex.name}
-                        onChange={(e) => updateExercise(pIdx, dIdx, eIdx, 'name', e.target.value)}
-                        placeholder="Exercise Name"
-                        className="bg-transparent text-[#f8fafc] font-semibold outline-none w-[75%] text-sm"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <input
-                        type="number"
-                        value={ex.targetSets}
-                        onChange={(e) => updateExercise(pIdx, dIdx, eIdx, 'targetSets', parseInt(e.target.value) || 0)}
-                        className="w-12 bg-canvas border border-line-in rounded p-1 text-center text-xs text-[#f8fafc]"
-                      />
-                      <span className="text-[#5b6678] text-[10px] font-bold">sets ×</span>
-                      <input
-                        type="number"
-                        value={ex.targetReps}
-                        onChange={(e) => updateExercise(pIdx, dIdx, eIdx, 'targetReps', parseInt(e.target.value) || 0)}
-                        className="w-12 bg-canvas border border-line-in rounded p-1 text-center text-xs text-[#f8fafc]"
-                      />
-                      <span className="text-[#5b6678] text-[10px] font-bold">reps</span>
-                      <span className={`text-[10px] font-bold ml-2 ${ex.rpe >= 9 ? 'text-peak' : 'text-[#5b6678]'}`}>RPE</span>
-                      <input
-                        type="number"
-                        value={ex.rpe}
-                        onChange={(e) => updateExercise(pIdx, dIdx, eIdx, 'rpe', parseFloat(e.target.value) || 0)}
-                        className="w-12 bg-canvas border border-line-in rounded p-1 text-center text-xs text-[#f8fafc]"
-                      />
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  onClick={() => addExercise(pIdx, dIdx)}
-                  className="w-full py-2 border border-dashed border-line-c text-[#8b96a8] rounded-[13px] flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors text-xs font-bold"
-                >
-                  <Plus className="w-4 h-4" /> Add Exercise
-                </button>
-              </div>
-            ))}
-
-            <button
-              onClick={() => addDay(pIdx)}
-              className="py-2 px-4 bg-surf-chip text-[#d3dae4] rounded-[11px] font-bold text-xs hover:bg-surf-hi w-full text-center border border-line-c"
-            >
-              + Add Day to Phase
-            </button>
-          </div>
-        ))}
-
-        <button
-          onClick={addPhase}
-          className="w-full py-3 border-[1.5px] border-dashed border-accent/40 text-accent rounded-[18px] flex items-center justify-center gap-2 hover:border-accent hover:bg-accent/10 transition-colors font-black text-sm"
-        >
-          <Plus className="w-5 h-5" /> Add Phase
-        </button>
-      </div>
+      <RoutineEditor
+        routine={editingRoutine}
+        onChange={setEditingRoutine}
+        onSave={handleSave}
+        onCancel={() => setEditingRoutine(null)}
+        saving={saving}
+      />
     );
   }
 
   return (
-    <div className="space-y-6 bg-canvas text-[#f8fafc] min-h-screen pb-24 p-4">
-      <div className="flex items-center justify-between mb-2 mt-4">
-        <h1 className="text-2xl font-black text-[#f8fafc]" style={{ letterSpacing: '-0.02em' }}>My Routines</h1>
-        <button
-          onClick={handleCreateNew}
-          className="p-2 rounded-full bg-accent text-white hover:bg-accent/90 transition-colors shadow-lg shadow-accent/20"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
-
-      {shareLink && (
-        <div className="p-4 bg-gain/10 border border-gain/30 rounded-[18px] animate-fadeIn">
-          <p className="text-xs text-gain-t font-bold mb-2 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> Share Link Generated!
-          </p>
-          <input
-            type="text"
-            readOnly
-            value={shareLink}
-            className="w-full bg-canvas border border-gain/30 rounded-[11px] p-2 text-[10px] text-[#d3dae4] outline-none"
-            onClick={(e) => e.target.select()}
-          />
-        </div>
-      )}
-
-      {routines.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border-[1.5px] border-dashed border-line-c rounded-[18px] mt-8">
-          <Sparkles className="w-10 h-10 text-[#3a4558] mb-3" />
-          <p className="text-[#8b96a8] font-bold text-sm">No custom routines yet.</p>
-          <p className="text-[10px] text-[#5b6678] mt-1">Tap + to build your own workout plan.</p>
-        </div>
-      ) : (
-        <div className="space-y-3 mt-4">
-          {routines.map((routine) => (
-            <div key={routine.id} className="bg-surf border border-line-c rounded-[18px] p-4 flex items-center justify-between">
-              <div className="min-w-0">
-                <h3 className="font-bold text-sm text-[#f8fafc] truncate">{routine.name}</h3>
-                <p className="text-[10px] text-[#8b96a8] mt-0.5">
-                  {routine.phases.length} Phases • {routine.phases.reduce((acc, p) => acc + p.days.length, 0)} Days
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {routineHasExercises(routine) && (
-                  <button
-                    onClick={() => handleStart(routine)}
-                    title="Start workout from this routine"
-                    className="flex items-center gap-1 px-3 py-1.5 bg-accent hover:bg-accent/90 rounded-[11px] text-white text-xs font-bold transition-colors"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" /> Start
-                  </button>
-                )}
-                <button
-                  onClick={() => handleShare(routine)}
-                  className="p-2 bg-surf-chip rounded-[11px] text-gain-t hover:bg-surf-hi transition-colors border border-line-c"
-                  title="Share"
-                >
-                  <Share2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setEditingRoutine(routine)}
-                  className="px-3 py-1.5 bg-accent/10 rounded-[11px] text-accent hover:bg-accent/20 text-xs font-bold transition-colors border border-accent/20"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(routine.id)}
-                  className="p-2 bg-surf-chip rounded-[11px] text-rose-400 hover:bg-surf-hi transition-colors border border-line-c"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <RoutineList
+      routines={customRoutines}
+      shareLink={shareLink}
+      onCreateNew={handleCreateNew}
+      onStart={handleStart}
+      onShare={handleShare}
+      onEdit={setEditingRoutine}
+      onDelete={handleDelete}
+    />
   );
 }

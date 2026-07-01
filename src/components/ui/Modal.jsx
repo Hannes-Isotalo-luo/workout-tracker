@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 /**
  * Shared modal / bottom-sheet wrapper. Handles the backdrop, click-outside
- * close, centering, and an optional close button — so individual modals only
- * provide their content.
+ * close, Escape-to-close, centering, and an optional close button — so
+ * individual modals only provide their content.
  *
  * @param {boolean} [open=true]
  * @param {() => void} onClose
@@ -25,6 +26,15 @@ export default function Modal({
   anchorBottom = false,
   z = 50,
 }) {
+  useEffect(() => {
+    if (!open || !onClose) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
   const align = anchorBottom ? 'items-end sm:items-center' : 'items-center';
   return (

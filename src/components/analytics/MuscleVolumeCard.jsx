@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Activity } from 'lucide-react';
 
 // low=amber, optimal=green, high=rose (danger state stays rose per existing semantics)
@@ -8,7 +9,7 @@ const ZONE_STYLES = {
 };
 
 /** Weekly hard-sets per muscle group vs. MEV/MRV landmarks (last 7 days). */
-export default function MuscleVolumeCard({ muscleRows }) {
+function MuscleVolumeCard({ muscleRows }) {
   return (
     <div className="glass-card p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -57,3 +58,5 @@ export default function MuscleVolumeCard({ muscleRows }) {
     </div>
   );
 }
+
+export default memo(MuscleVolumeCard);

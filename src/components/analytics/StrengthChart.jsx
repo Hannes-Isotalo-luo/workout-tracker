@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 
@@ -23,7 +24,7 @@ const StrengthTooltip = ({ active, payload, label }) => {
  * Strength-progression line chart for the selected exercise + metric.
  * Line uses accent violet (#6d5cf0); goal reference uses amber (#e0a93b).
  */
-export default function StrengthChart({ data, metricKey, goal, onChartClick }) {
+function StrengthChart({ data, metricKey, goal, onChartClick }) {
   const unlocked = data.length >= 2;
 
   return (
@@ -73,3 +74,5 @@ export default function StrengthChart({ data, metricKey, goal, onChartClick }) {
     </div>
   );
 }
+
+export default memo(StrengthChart);

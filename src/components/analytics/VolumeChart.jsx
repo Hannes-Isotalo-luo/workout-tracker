@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 
@@ -19,7 +20,7 @@ const VolumeTooltip = ({ active, payload, label }) => {
 };
 
 /** Week-over-week total training volume line chart. Uses gain green for volume data. */
-export default function VolumeChart({ data }) {
+function VolumeChart({ data }) {
   return (
     <div className="h-[210px] w-full mt-2">
       {data.length >= 1 ? (
@@ -59,3 +60,5 @@ export default function VolumeChart({ data }) {
     </div>
   );
 }
+
+export default memo(VolumeChart);

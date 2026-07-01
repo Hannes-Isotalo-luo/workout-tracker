@@ -11,11 +11,16 @@ service cloud.firestore {
 
     // Publicly shareable routines: anyone can read a shared routine by its id,
     // any signed-in user can publish one. No updates/deletes (shares are
-    // immutable). Writes are shape/size-validated to bound abuse of this
-    // world-readable, openly-creatable collection.
+    // immutable). Writes are shape/size-validated and authorship-checked to
+    // bound abuse of this world-readable, openly-creatable collection.
+    // (Firestore rules can't validate sizes of nested list elements without
+    // enumerating indices, so per-phase day/exercise counts aren't bounded
+    // here — Firestore's own 1 MiB per-document cap is the backstop.)
     match /shared_routines/{shareId} {
       allow read: if true;
       allow create: if request.auth != null
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.isPublic == true
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
