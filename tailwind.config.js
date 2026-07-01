@@ -10,16 +10,6 @@ export default {
         sans: ['Hanken Grotesk', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
-        // Existing intermediate slate shades (kept for any residual usage)
-        slate: {
-          450: '#8695a9',
-          550: '#576274',
-          650: '#3e4c61',
-          750: '#293548',
-          755: '#27334a',
-          805: '#1c2636',
-          850: '#172033',
-        },
         // ── Design system semantic accent colors ────────────────
         accent:    '#6d5cf0',    // violet — active / in-progress / primary action
         gain:      '#2faa78',    // green — completed / done / positive delta

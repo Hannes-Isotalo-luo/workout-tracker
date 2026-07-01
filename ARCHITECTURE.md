@@ -157,8 +157,7 @@ workout-tracker/
 ├── .firebaserc                          # Firebase project alias
 ├── ARCHITECTURE.md                      # ← This file
 ├── project_rules.md                     # Agent guardrails
-├── Fundamentals Hypertrophy Program V2*.csv   # Source workout data
-└── Fundamentals Hypertrophy Key Terms*.csv    # Source glossary data
+└── Fundamentals Hypertrophy Program V2*.csv   # Source workout data
 ```
 
 ---
@@ -698,9 +697,9 @@ Abbreviation rules:
 
 ---
 
-## Appendix A: Key Terms Glossary (from CSV)
+## Appendix A: Key Terms Glossary (reference only, not shipped in-app)
 
-These definitions are sourced from `Fundamentals Hypertrophy Key Terms.csv` and may be displayed in a tooltip or info modal within the app.
+These terms are not surfaced anywhere in the app UI; kept here purely as reference for anyone extending the program data.
 
 | Term     | Definition                                                                                                |
 | -------- | --------------------------------------------------------------------------------------------------------- |

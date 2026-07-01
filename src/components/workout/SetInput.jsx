@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, Trophy } from 'lucide-react';
+import { epley1RM } from '../../utils/volumeCalculator';
 
 /**
  * SetInput - A single workout set logging row.
@@ -46,7 +47,7 @@ function SetInput({
   const parsedWeight = parseFloat(weight);
   const parsedReps = parseInt(repsCompleted, 10);
   const hasE1RM = isComplete && !isNaN(parsedWeight) && !isNaN(parsedReps) && parsedReps > 0;
-  const e1RM = hasE1RM ? (parsedWeight * (1 + parsedReps / 30)).toFixed(1) : null;
+  const e1RM = hasE1RM ? epley1RM(parsedWeight, parsedReps).toFixed(1) : null;
 
   return (
     <div

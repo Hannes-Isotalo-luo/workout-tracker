@@ -70,9 +70,4 @@ html {
            transition-all duration-200
            focus:border-accent focus:ring-2 focus:ring-accent/30;
   }
-
-  /* RPE badge — amber (#e0a93b) without animated glow */
-  .rpe-badge-prominent {
-    @apply text-xs font-black bg-peak text-slate-950 px-2.5 py-0.5 rounded-full border border-peak/60 select-none;
-  }
 }

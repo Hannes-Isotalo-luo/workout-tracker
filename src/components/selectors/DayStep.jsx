@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Play, ChevronDown } from 'lucide-react';
 import { getDays, getExercises, getPhases } from '../../utils/csvParser';
+import { relativeDayLabel } from '../../utils/formatters';
 import { useWorkout } from '../../context/WorkoutContext';
 
 export function DayStep({ programData, selectedProgram, selectedPhase, initSession, selectProgram, selectPhase }) {
@@ -15,17 +16,7 @@ export function DayStep({ programData, selectedProgram, selectedPhase, initSessi
       .reverse()
       .find(s => s.program === selectedProgram && s.phase === selectedPhase && s.day === dayName);
     if (!lastSession) return 'Never';
-    const dateStr = lastSession.completedAt || lastSession.date;
-    if (!dateStr) return 'Never';
-    const completedDate = new Date(dateStr);
-    const today = new Date();
-    const cOnly = new Date(completedDate.getFullYear(), completedDate.getMonth(), completedDate.getDate());
-    const tOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const diffDays = Math.round((tOnly - cOnly) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays > 1) return `${diffDays} days ago`;
-    return 'Today';
+    return relativeDayLabel(lastSession.completedAt || lastSession.date);
   };
 
   return (

@@ -5,6 +5,8 @@
 // One row per logged set, so the file is easy to pivot in any spreadsheet.
 // ─────────────────────────────────────────────────────────────────────
 
+import { epley1RM } from './volumeCalculator.js';
+
 const COLUMNS = [
   'Date',
   'Program',
@@ -45,7 +47,7 @@ export function buildHistoryCsv(history) {
         const weight = parseFloat(set.weight) || 0;
         const reps = parseInt(set.repsCompleted, 10) || 0;
         const volume = set.isComplete ? weight * reps : 0;
-        const e1rm = set.isComplete && reps > 0 ? Math.round(weight * (1 + reps / 30) * 10) / 10 : '';
+        const e1rm = set.isComplete && reps > 0 ? Math.round(epley1RM(weight, reps) * 10) / 10 : '';
 
         rows.push([
           csvCell(dateStr),
